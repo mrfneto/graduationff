@@ -1,0 +1,108 @@
+import { ref, computed } from 'vue'
+import { defineStore } from 'pinia'
+import { db } from '@/firebase'
+import {
+  collection,
+  query,
+  updateDoc,
+  doc,
+  deleteDoc,
+  addDoc,
+  getDocs,
+  getDoc,
+  orderBy,
+  limit,
+  serverTimestamp
+} from 'firebase/firestore'
+
+export const useSemesterStore = defineStore('semester', () => {
+  const semesters = ref([])
+
+  // 🔍 Semestre ativo no momento
+  const activeSemester = computed(() => {
+    return semesters.value.find(s => s.status === 'ativo') || null
+  })
+
+  // 🔮 Semestre futuro previsto
+  const predictedSemester = computed(() => {
+    return semesters.value.find(s => s.status === 'previsto') || null
+  })
+
+  // 📥 Buscar os últimos semestres
+  const get = async () => {
+    try {
+      const q = query(
+        collection(db, 'semesters'),
+        orderBy('name', 'desc'),
+        limit(3)
+      )
+
+      const snapshot = await getDocs(q)
+      const now = new Date()
+
+      semesters.value = snapshot.docs.map(snap => {
+        const data = snap.data()
+        const start = new Date(`${data.start}T00:00:00`)
+        const end = new Date(`${data.end}T23:59:59`)
+
+        let status = 'encerrado'
+        if (now >= start && now <= end) status = 'ativo'
+        else if (now < start) status = 'previsto'
+
+        return {
+          id: snap.id,
+          ...data,
+          status
+        }
+      })
+    } catch (error) {
+      console.error('[SemesterStore] Erro ao carregar semestres:', error)
+    }
+  }
+
+  // 🔍 Buscar por ID
+  const getById = async id => {
+    try {
+      const result = await getDoc(doc(db, 'semesters', id))
+      return result.exists() ? { ...result.data() } : null
+    } catch (error) {
+      console.error('[SemesterStore] Erro ao buscar semestre por ID:', error)
+      return null
+    }
+  }
+
+  // 💾 Criar ou atualizar semestre
+  const save = async (semester, id = null) => {
+    const payload = { ...semester, update_at: serverTimestamp() }
+
+    try {
+      if (id) {
+        await updateDoc(doc(db, 'semesters', id), payload)
+      } else {
+        payload.created_at = serverTimestamp()
+        await addDoc(collection(db, 'semesters'), payload)
+      }
+    } catch (error) {
+      console.error('[SemesterStore] Erro ao salvar semestre:', error)
+    }
+  }
+
+  // 🗑️ Remover semestre por ID
+  const remove = async id => {
+    try {
+      await deleteDoc(doc(db, 'semesters', id))
+    } catch (error) {
+      console.error('[SemesterStore] Erro ao remover semestre:', error)
+    }
+  }
+
+  return {
+    semesters,
+    activeSemester,
+    predictedSemester,
+    get,
+    getById,
+    save,
+    remove
+  }
+})

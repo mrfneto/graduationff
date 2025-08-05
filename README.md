@@ -4,6 +4,10 @@
 
 Este projeto é um sistema para gerenciamento de semestres acadêmicos, coordenadores e solicitações de regularização de matrícula. Permite o cadastro, edição e exclusão dessas entidades, além de filtrar e visualizar detalhes das solicitações.
 
+## Visualizar Projeto
+
+[![Site](https://img.shields.io/badge/Ver%20Site-Ao%20Vivo-blue)](https://gradff-ufrj.web.app/)
+
 ## Tecnologias
 
 - Vue 3 + Composition API

@@ -8,6 +8,7 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 ## [0.4.0] - 2025-08-05
 
 ### Added
+- Logo oficial da Faculdade de Farmácia - UFRJ em formato JPEG.
 
 - Configuração de deploy inicial para Firebase Hosting com suporte a SPA (Vite + Vue.js)
 

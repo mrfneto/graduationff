@@ -6,11 +6,10 @@ defineProps({
 
 <template>
   <router-link :to="to" class="flex items-center space-x-2">
-    <div
-      class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center"
-    >
-      <span class="text-white text-lg font-bold">A</span>
-    </div>
-    <span class="text-xl font-semibold text-gray-900">App</span>
+    <img
+      src="@/assets/logo-farmc3a1cia.jpg"
+      alt="Logo Faculdade de Farmácia - UFRJ"
+      class="h-10 w-auto"
+    />
   </router-link>
 </template>

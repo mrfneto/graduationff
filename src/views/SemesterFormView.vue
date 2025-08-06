@@ -4,11 +4,12 @@ import { useRouter, useRoute } from 'vue-router'
 import { useSemesterStore } from '@/stores/semester'
 
 import AppLayout from '@/components/layouts/AppLayout.vue'
-import AppLoader from '../components/ui/AppLoader.vue'
-import BaseCard from '../components/ui/BaseCard.vue'
-import BaseInput from '../components/ui/BaseInput.vue'
-import BaseButton from '../components/ui/BaseButton.vue'
-import BaseAlert from '../components/ui/BaseAlert.vue'
+import AppLoader from '@/components/ui/AppLoader.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseAlert from '@/components/ui/BaseAlert.vue'
+import sweet from '@/composables/sweet'
 
 import { MoveLeft } from 'lucide-vue-next'
 
@@ -45,6 +46,7 @@ const handleSubmit = async () => {
   state.value.saving = true
   try {
     await semesterStore.save(form.value, id)
+    await sweet.success('Registro salvo com success')
     router.push({ name: 'semesters' })
   } catch (err) {
     setError(err.message || 'Erro ao salvar o semestre.')
@@ -64,6 +66,7 @@ const handleDelete = async () => {
   state.value.deleting = true
   try {
     await semesterStore.remove(id)
+    await sweet.success('Registro excluído com success')
     router.push({ name: 'semesters' })
   } catch (err) {
     setError(err.message || 'Erro ao excluir o semestre.')

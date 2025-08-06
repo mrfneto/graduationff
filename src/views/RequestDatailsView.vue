@@ -5,13 +5,15 @@ import { useRequestStore } from '@/stores/request'
 import { useCoordinatorStore } from '@/stores/coordinator'
 import { sendEmail, getStatusColor, formatTimestamp } from '@/helpers'
 
+//
 import { MoveLeft } from 'lucide-vue-next'
 import AppLayout from '@/components/layouts/AppLayout.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AppLoader from '@/components/ui/AppLoader.vue'
-import BaseCard from '../components/ui/BaseCard.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import sweet from '@/composables/sweet'
 
 const route = useRoute()
 const router = useRouter()
@@ -55,20 +57,23 @@ const handleSubmit = async () => {
 
     await requestStore.save(request.value, id.value)
 
-    const shouldSendEmail = confirm('Deseja enviar o e-mail para o aluno?')
-    if (shouldSendEmail) {
+    const confirmed = await sweet.confirm(
+      'Deseja enviar e-mail com o parecer para o aluno?',
+      'Você pode enviar agora ou apenas salvar o parecer e enviar depois clicando em salvar.'
+    )
+    if (confirmed) {
       await sendEmail(request.value)
-      request.value.sentAt = new Date().toISOString() // campo com data de envio
+      request.value.sentAt = new Date().toISOString()
       await requestStore.save(request.value, id.value)
-      alert('Parecer salvo e e-mail enviado com sucesso.')
+      await sweet.success('Parecer salvo e e-mail enviado com sucesso!')
     } else {
-      alert('Parecer salvo sem envio de e-mail.')
+      await sweet.info('Parecer salvo com sucesso.')
     }
 
     router.push({ name: 'requests' })
   } catch (error) {
     console.error(error)
-    alert('Erro ao salvar o parecer.')
+    await sweet.error('Ocorreu um erro ao salvar.')
   } finally {
     saving.value = false
   }

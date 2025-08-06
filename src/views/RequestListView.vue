@@ -94,18 +94,22 @@ onMounted(async () => {
             :key="request.id"
             :to="{ name: 'request-datails', params: { id: request.id } }"
           >
-            <div class="flex justify-between items-start mb-2 flex-wrap gap-2">
+            <div class="flex justify-between items-start flex-wrap gap-2">
               <div>
                 <h2 class="font-semibold text-lg">{{ request.name }}</h2>
-                <p class="text-sm text-gray-500">
+                <!-- <p class="text-sm text-gray-500">
                   {{ request.register }} — {{ request.course }}
-                </p>
+                </p> -->
               </div>
             </div>
 
             <div
               class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-600"
             >
+              <div class="text-xs">
+                <p>{{ request.email }}</p>
+                <p>DRE: {{ request.register }} - {{ request.course }}</p>
+              </div>
               <div>
                 <strong class="block text-gray-500">Semestre</strong>
                 {{ request.semester }}

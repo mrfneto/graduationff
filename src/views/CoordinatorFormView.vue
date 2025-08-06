@@ -2,13 +2,14 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCoordinatorStore } from '@/stores/coordinator'
-
+//
 import AppLayout from '@/components/layouts/AppLayout.vue'
 import AppLoader from '@/components/ui/AppLoader.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
+import sweet from '@/composables/sweet'
 
 import { MoveLeft } from 'lucide-vue-next'
 
@@ -46,6 +47,7 @@ const handleSubmit = async () => {
 
   try {
     await coordinatorStore.save(form.value, id)
+    await sweet.success('Registro salvo com success')
     router.push({ name: 'coordinators' })
   } catch (err) {
     setError(err.message || 'Erro ao salvar o coordenador.')
@@ -67,6 +69,7 @@ const handleDelete = async () => {
 
   try {
     await coordinatorStore.remove(id)
+    await sweet.success('Registro excluído com success')
     router.push({ name: 'coordinators' })
   } catch (err) {
     setError(err.message || 'Erro ao excluir o coordenador.')

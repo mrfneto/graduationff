@@ -39,6 +39,11 @@ onMounted(async () => {
 const extractName = str => {
   return str.split(' - ')[1] || ''
 }
+
+const formatDateLong = date => {
+  const options = { year: 'numeric', month: 'long', day: 'numeric' }
+  return new Date(date).toLocaleDateString('pt-BR', options)
+}
 </script>
 
 <template>
@@ -133,7 +138,7 @@ const extractName = str => {
       </BaseCard>
 
       <BaseCard>
-        <h2 class="text-lg font-bold mb-4">Parecer</h2>
+        <h2 class="text-lg font-bold mb-2">Parecer</h2>
         <p
           class="text-gray-700 whitespace-pre-wrap text-sm mb-2"
           v-if="request.opinion"
@@ -141,11 +146,20 @@ const extractName = str => {
           {{ request.opinion }}
         </p>
         <p
-          class="text-gray-700 font-bold whitespace-pre-wrap text-sm"
+          class="text-gray-700 font-bold whitespace-pre-wrap text-sm border-t border-gray-200 pt-2 mb-2"
           v-if="request.coordinator"
         >
-          {{ extractName(request.coordinator) }}
+          <span class="text-sm font-normal">Coordenador(a): </span
+          >{{ extractName(request.coordinator) }}
         </p>
+        <p
+          class="text-gray-700 font-normal whitespace-pre-wrap text-sm"
+          v-if="request?.sentAt"
+        >
+          <span class="text-sm font-normal">E-mail enviado em: </span>
+          {{ formatDateLong(request.sentAt) }}
+        </p>
+
         <p
           v-if="!request.opinion"
           class="text-gray-700 whitespace-pre-wrap text-sm"

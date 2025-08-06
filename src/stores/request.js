@@ -27,6 +27,8 @@ export const useRequestStore = defineStore('request', () => {
   const semesterStore = useSemesterStore()
   const requests = ref([])
 
+  const collectionName = import.meta.env.VITE_FIREBASE_COLLECTION_REQUESTS
+
   const filters = ref({
     name: '',
     semester: semesterStore.activeSemester?.title || '',
@@ -41,7 +43,7 @@ export const useRequestStore = defineStore('request', () => {
   const get = async (arrayFilters = []) => {
     try {
       let q = query(
-        collection(db, 'requests'),
+        collection(db, collectionName),
         orderBy('created_at', 'desc'),
         orderBy('name')
       )
@@ -63,7 +65,7 @@ export const useRequestStore = defineStore('request', () => {
   // 🔍 Busca um registro por ID (retorna apenas os dados)
   const getById = async id => {
     try {
-      const result = await getDoc(doc(db, 'requests', id))
+      const result = await getDoc(doc(db, collectionName, id))
       return result.exists() ? { ...result.data() } : null
     } catch (error) {
       console.error('[RequestStore] Erro ao buscar por ID:', error)
@@ -92,11 +94,11 @@ export const useRequestStore = defineStore('request', () => {
 
     try {
       if (id) {
-        await updateDoc(doc(db, 'requests', id), payload)
+        await updateDoc(doc(db, collectionName, id), payload)
       } else {
         payload.access_code = `${nanoid()}/${payload.semester}`
         payload.created_at = serverTimestamp()
-        await addDoc(collection(db, 'requests'), payload)
+        await addDoc(collection(db, collectionName), payload)
       }
       return payload.access_code
     } catch (error) {
@@ -107,7 +109,7 @@ export const useRequestStore = defineStore('request', () => {
   // 🗑️ Remove um registro por ID
   const remove = async id => {
     try {
-      await deleteDoc(doc(db, 'requests', id))
+      await deleteDoc(doc(db, collectionName, id))
     } catch (error) {
       console.error('[RequestStore] Erro ao remover registro:', error)
     }

@@ -29,7 +29,7 @@ const state = reactive({
 const form = ref({
   name: '',
   siape: '',
-  active: false
+  active: true
 })
 
 const setError = msg => {

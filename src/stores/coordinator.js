@@ -17,10 +17,12 @@ import {
 export const useCoordinatorStore = defineStore('coordinator', () => {
   const coordinators = ref([])
 
+  const collectionName = import.meta.env.VITE_FIREBASE_COLLECTION_COORDINATORS
+
   // 🔄 Carrega coordenadores com ordenação
   const get = async () => {
     try {
-      const q = query(collection(db, 'coordinators'), orderBy('name'))
+      const q = query(collection(db, collectionName), orderBy('name'))
       const snapshot = await getDocs(q)
 
       coordinators.value = snapshot.docs.map(snap => ({
@@ -35,7 +37,7 @@ export const useCoordinatorStore = defineStore('coordinator', () => {
   // 🔍 Busca dados por ID (sem retornar o ID)
   const getById = async id => {
     try {
-      const result = await getDoc(doc(db, 'coordinators', id))
+      const result = await getDoc(doc(db, collectionName, id))
       return result.exists() ? { ...result.data() } : null
     } catch (error) {
       console.error('[CoordinatorStore] Erro ao buscar por ID:', error)
@@ -49,10 +51,10 @@ export const useCoordinatorStore = defineStore('coordinator', () => {
 
     try {
       if (id) {
-        await updateDoc(doc(db, 'coordinators', id), payload)
+        await updateDoc(doc(db, collectionName, id), payload)
       } else {
         payload.created_at = serverTimestamp()
-        await addDoc(collection(db, 'coordinators'), payload)
+        await addDoc(collection(db, collectionName), payload)
       }
     } catch (error) {
       console.error('[CoordinatorStore] Erro ao salvar coordenador:', error)
@@ -62,7 +64,7 @@ export const useCoordinatorStore = defineStore('coordinator', () => {
   // 🗑️ Excluir coordenador
   const remove = async id => {
     try {
-      await deleteDoc(doc(db, 'coordinators', id))
+      await deleteDoc(doc(db, collectionName, id))
     } catch (error) {
       console.error('[CoordinatorStore] Erro ao remover coordenador:', error)
     }

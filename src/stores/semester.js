@@ -18,6 +18,8 @@ import {
 export const useSemesterStore = defineStore('semester', () => {
   const semesters = ref([])
 
+  const collectionName = import.meta.env.VITE_FIREBASE_COLLECTION_SEMESTERS
+
   // 🔍 Semestre ativo no momento
   const activeSemester = computed(() => {
     return semesters.value.find(s => s.status === 'ativo') || null
@@ -32,7 +34,7 @@ export const useSemesterStore = defineStore('semester', () => {
   const get = async () => {
     try {
       const q = query(
-        collection(db, 'semesters'),
+        collection(db, collectionName),
         orderBy('name', 'desc'),
         limit(3)
       )
@@ -63,7 +65,7 @@ export const useSemesterStore = defineStore('semester', () => {
   // 🔍 Buscar por ID
   const getById = async id => {
     try {
-      const result = await getDoc(doc(db, 'semesters', id))
+      const result = await getDoc(doc(db, collectionName, id))
       return result.exists() ? { ...result.data() } : null
     } catch (error) {
       console.error('[SemesterStore] Erro ao buscar semestre por ID:', error)
@@ -77,10 +79,10 @@ export const useSemesterStore = defineStore('semester', () => {
 
     try {
       if (id) {
-        await updateDoc(doc(db, 'semesters', id), payload)
+        await updateDoc(doc(db, collectionName, id), payload)
       } else {
         payload.created_at = serverTimestamp()
-        await addDoc(collection(db, 'semesters'), payload)
+        await addDoc(collection(db, collectionName), payload)
       }
     } catch (error) {
       console.error('[SemesterStore] Erro ao salvar semestre:', error)
@@ -90,7 +92,7 @@ export const useSemesterStore = defineStore('semester', () => {
   // 🗑️ Remover semestre por ID
   const remove = async id => {
     try {
-      await deleteDoc(doc(db, 'semesters', id))
+      await deleteDoc(doc(db, collectionName, id))
     } catch (error) {
       console.error('[SemesterStore] Erro ao remover semestre:', error)
     }

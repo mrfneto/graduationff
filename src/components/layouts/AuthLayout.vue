@@ -8,7 +8,7 @@ import BaseCard from '../ui/BaseCard.vue'
     <div class="w-full max-w-md">
       <!-- Logo -->
       <div class="text-center mb-8">
-        <AppLogo to="/" />
+        <AppLogo to="/" class="mx-auto" />
       </div>
 
       <!-- Auth Content -->

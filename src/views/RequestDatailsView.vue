@@ -54,9 +54,17 @@ const handleSubmit = async () => {
         : 'Indeferido'
 
     await requestStore.save(request.value, id.value)
-    await sendEmail(request.value)
 
-    alert('Parecer salvo e e-mail enviado com sucesso.')
+    const shouldSendEmail = confirm('Deseja enviar o e-mail para o aluno?')
+    if (shouldSendEmail) {
+      await sendEmail(request.value)
+      request.value.sentAt = new Date().toISOString() // campo com data de envio
+      await requestStore.save(request.value, id.value)
+      alert('Parecer salvo e e-mail enviado com sucesso.')
+    } else {
+      alert('Parecer salvo sem envio de e-mail.')
+    }
+
     router.push({ name: 'requests' })
   } catch (error) {
     console.error(error)

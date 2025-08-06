@@ -98,8 +98,8 @@ const handleSubmit = async () => {
     </p>
 
     <div v-else>
+      <!-- Grupo 1: Dados do Aluno -->
       <BaseCard class="space-y-6 mb-4">
-        <!-- Grupo 1: Dados do Aluno -->
         <div>
           <h2 class="font-semibold text-lg mb-2">Informações do Aluno</h2>
           <div class="grid md:grid-cols-2 text-sm">
@@ -140,8 +140,8 @@ const handleSubmit = async () => {
         </div>
       </BaseCard>
 
+      <!-- Grupo 2: Parecer do Coordenador -->
       <BaseCard title="Parecer do Coordenador">
-        <!-- Grupo 2: Parecer do Coordenador -->
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <div class="space-y-4">
             <h3 class="text-lg font-semibold">Irregularidades</h3>
@@ -227,9 +227,18 @@ const handleSubmit = async () => {
             </div>
           </div>
 
-          <BaseButton :loading="saving" class="w-full btn-primary">
-            Salvar Parecer
-          </BaseButton>
+          <div class="flex items-center space-x-4">
+            <BaseButton :loading="saving" class="w-full">
+              Salvar Parecer
+            </BaseButton>
+            <BaseButton
+              :to="{ name: 'requests' }"
+              type="button"
+              variant="secondary"
+            >
+              Cancelar
+            </BaseButton>
+          </div>
         </form>
       </BaseCard>
     </div>

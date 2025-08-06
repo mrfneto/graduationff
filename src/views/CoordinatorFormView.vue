@@ -154,7 +154,7 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="flex items-center space-x-2 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center gap-4 mb-6">
           <BaseButton :loading="state.saving" class="flex-1">
             {{ id ? 'Alterar' : 'Cadastrar' }} Coordenador
           </BaseButton>

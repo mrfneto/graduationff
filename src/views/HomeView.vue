@@ -7,6 +7,7 @@ import { formatDate } from '@/helpers'
 import { useSemesterStore } from '@/stores/semester'
 import { useRequestStore } from '@/stores/request'
 
+import sweet from '@/composables/sweet'
 import AppLayout from '@/components/layouts/AppLayout.vue'
 import AppLoader from '@/components/ui/AppLoader.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -57,11 +58,13 @@ const handleSubmit = async () => {
         params: { id: requestStore.requests[0].id }
       })
     } else {
-      state.errorMsg = messages.notFound
+      // state.errorMsg = messages.notFound
+      sweet.error(messages.notFound)
     }
   } catch (error) {
     console.error('Erro na consulta de código de acesso:', error)
-    state.errorMsg = messages.error
+    sweet.error(messages.error)
+    // state.errorMsg =
   } finally {
     state.searching = false
   }

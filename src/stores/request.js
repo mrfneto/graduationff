@@ -86,7 +86,7 @@ export const useRequestStore = defineStore('request', () => {
 
     const uploadedFiles = []
     for (const file of newFiles) {
-      const uploaded = await uploadFile(file, payload.semester)
+      const uploaded = await uploadFile(file, payload.semester) 
       uploadedFiles.push(uploaded)
     }
 
@@ -98,7 +98,7 @@ export const useRequestStore = defineStore('request', () => {
       } else {
         payload.access_code = `${nanoid()}/${payload.semester}`
         payload.created_at = serverTimestamp()
-        await addDoc(collection(db, collectionName), payload)
+        await addDoc(collection(db, collectionName), payload) 
       }
       return payload.access_code
     } catch (error) {

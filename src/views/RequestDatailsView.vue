@@ -52,7 +52,7 @@ const handleSubmit = async () => {
       authorizeds === total
         ? 'Deferido'
         : authorizeds > 0
-        ? 'Parcial'
+        ? 'Deferido-Parcial'
         : 'Indeferido'
 
     await requestStore.save(request.value, id.value)
@@ -98,10 +98,11 @@ const handleSubmit = async () => {
     </p>
 
     <div v-else>
-      <!-- Grupo 1: Dados do Aluno -->
+      <!-- Grupo 1: Detalhes do pedido -->
       <BaseCard class="space-y-6 mb-4">
         <div>
           <h2 class="font-semibold text-lg mb-2">Informações do Aluno</h2>
+          <!-- Dados pessoais -->
           <div class="grid md:grid-cols-2 text-sm">
             <p><strong>Nome:</strong> {{ request.name }}</p>
             <p>
@@ -117,33 +118,16 @@ const handleSubmit = async () => {
               <strong>Data:</strong> {{ formatTimestamp(request.created_at) }}
             </p>
           </div>
-
-          <div>
-            <h3 class="heading-sm mt-4 mb-2">Justificativa do Aluno</h3>
+          <!-- Observações -->
+          <div class="mb-4">
+            <h3 class="font-semibold text-lg mb-2 mt-4">
+              Observações do Aluno
+            </h3>
             <p class="whitespace-pre-wrap">{{ request.obs }}</p>
           </div>
 
-          <div v-if="request.files?.length">
-            <h3 class="heading-sm mt-4 mb-2">Arquivos Anexados</h3>
-            <ul class="list-disc ml-6">
-              <li v-for="file in request.files" :key="file.name">
-                <a
-                  :href="file.url"
-                  target="_blank"
-                  class="text-blue-600 underline"
-                >
-                  {{ file.name }}
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </BaseCard>
-
-      <!-- Grupo 2: Parecer do Coordenador -->
-      <BaseCard title="Parecer do Coordenador">
-        <form @submit.prevent="handleSubmit" class="space-y-6">
           <div class="space-y-4">
+            <!-- Lista de irregularidas -->
             <h3 class="text-lg font-semibold">Irregularidades</h3>
             <div
               v-for="(item, index) in request.irregularities"
@@ -182,10 +166,29 @@ const handleSubmit = async () => {
                 </p>
               </div>
             </div>
+
+            <!-- Documentos do aluno -->
+            <div v-if="request.files?.length">
+              <h3 class="text-lg font-semibold">Arquivos Anexados</h3>
+              <ul class="list-disc ml-6">
+                <li v-for="file in request.files" :key="file.name">
+                  <a
+                    :href="file.url"
+                    target="_blank"
+                    class="text-blue-600 underline"
+                  >
+                    {{ file.name }}
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
+        </div>
+      </BaseCard>
 
-          <h3 class="text-lg font-semibold">Parecer</h3>
-
+      <!-- Grupo 2: Parecer do Coordenador -->
+      <BaseCard title="Parecer do Coordenador">
+        <form @submit.prevent="handleSubmit" class="space-y-6">
           <div class="grid md:grid-cols-2 gap-4">
             <BaseInput
               type="textarea"
@@ -207,23 +210,25 @@ const handleSubmit = async () => {
                 placeholder="Nome do coordenador"
                 required
               />
-              <label
-                class="inline-flex items-center space-x-2 cursor-pointer mt-8"
-              >
-                <input
-                  type="checkbox"
-                  v-model="request.siga"
-                  class="form-checkbox h-5 w-5 text-primary-600"
-                />
-                <span
-                  :class="request.siga ? 'text-green-600' : 'text-red-600'"
-                  >{{
-                    request.siga
-                      ? 'Lançado no SIGA pela Secretaria'
-                      : 'Não lançado no SIGA pela Secretaria'
-                  }}</span
+              <div>
+                <label
+                  class="inline-flex items-center space-x-2 cursor-pointer mt-8"
                 >
-              </label>
+                  <input
+                    type="checkbox"
+                    v-model="request.siga"
+                    class="form-checkbox h-5 w-5 text-primary-600"
+                  />
+                  <span
+                    :class="request.siga ? 'text-green-600' : 'text-red-600'"
+                    >{{
+                      request.siga
+                        ? 'Lançado no SIGA pela Secretaria'
+                        : 'Não lançado no SIGA pela Secretaria'
+                    }}</span
+                  >
+                </label>
+              </div>
             </div>
           </div>
 

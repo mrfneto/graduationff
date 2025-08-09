@@ -116,7 +116,7 @@ onMounted(async () => {
       </BaseButton>
     </template>
 
-    <BaseCard class="w-full max-w-2xl mx-auto">
+    <BaseCard class="w-full max-w-3xl mx-auto">
       <AppLoader v-if="state.loading" />
 
       <form v-else @submit.prevent="handleSubmit" class="space-y-6">
@@ -139,7 +139,7 @@ onMounted(async () => {
           />
 
           <div
-            class="flex items-center space-x-1 p-0.5 border border-gray-200 mt-6"
+            class="flex-1 flex items-center space-x-1 p-0.5 rounded-lg border border-gray-200 md:mt-6"
           >
             <BaseButton
               v-for="type in [true, false]"

@@ -86,7 +86,7 @@ const initials = computed(() => {
           <div class="relative" ref="userMenuRef" v-if="user">
             <button
               @click="toggleUserMenu"
-              class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors duration-200"
             >
               <img
                 v-if="user && user.avatar"
@@ -123,7 +123,7 @@ const initials = computed(() => {
                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-grau-50 focus:outline-none z-50"
               >
                 <div class="py-1">
-                  <router-link
+                  <!-- <router-link
                     to="#"
                     @click="showUserMenu = false"
                     class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
@@ -136,7 +136,7 @@ const initials = computed(() => {
                     class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                   >
                     Configurações
-                  </router-link>
+                  </router-link> -->
                   <div v-if="links.length" class="md:hidden">
                     <div class="border-t border-gray-100"></div>
                     <router-link
@@ -152,7 +152,7 @@ const initials = computed(() => {
                   <div class="border-t border-gray-100"></div>
                   <button
                     @click="handleLogout"
-                    class="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors duration-200"
+                    class="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-gray-100 cursor-pointer transition-colors duration-200"
                   >
                     Sair
                   </button>

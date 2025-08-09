@@ -72,12 +72,34 @@ export const generatePDF = request => {
   const marginLeft = 20
   let currentY = 30
 
+  const pageHeight = doc.internal.pageSize.height
+
+  // Função para adicionar texto com quebra automática e controle de página
+  const addWrappedText = (text, x, y, maxWidth, lineHeight) => {
+    const lines = doc.splitTextToSize(text, maxWidth)
+    lines.forEach(line => {
+      if (y + lineHeight > pageHeight - 20) {
+        doc.addPage()
+        y = 30
+      }
+      doc.text(line, x, y)
+      y += lineHeight
+    })
+    return y
+  }
+
   // --- Cabeçalho ---
   doc.setFontSize(20)
+  doc.setFont(undefined, 'bold')
   doc.text('Comprovante de Solicitação', marginLeft, currentY)
 
-  currentY += 20
+  currentY += 10
+  doc.setDrawColor(0)
+  doc.line(marginLeft, currentY, 190, currentY) // linha separadora
+
+  currentY += 10
   doc.setFontSize(12)
+  doc.setFont(undefined, 'normal')
   doc.text(`Código de Acesso: ${request.access_code}`, marginLeft, currentY)
 
   currentY += 8
@@ -89,8 +111,7 @@ export const generatePDF = request => {
 
   currentY += 8
   doc.text(
-    `Data:  ${formatTimestamp(request.created_at ?? new Date())}`,
-
+    `Data: ${formatTimestamp(request.created_at ?? new Date())}`,
     marginLeft,
     currentY
   )
@@ -98,51 +119,181 @@ export const generatePDF = request => {
   // --- Solicitante ---
   currentY += 15
   doc.setFontSize(14)
+  doc.setFont(undefined, 'bold')
   doc.text('Dados do Solicitante:', marginLeft, currentY)
 
-  doc.setFontSize(11)
   currentY += 10
-  doc.text(`Nome: ${request.name}`, marginLeft, currentY)
-
-  currentY += 8
-  doc.text(`Matrícula: ${request.register}`, marginLeft, currentY)
-
-  currentY += 8
-  doc.text(`Email: ${request.email}`, marginLeft, currentY)
-
-  currentY += 8
-  doc.text(`Curso: ${request.course}`, marginLeft, currentY)
-
-  currentY += 8
-  doc.text(`Semestre: ${request.semester}`, marginLeft, currentY)
+  doc.setFontSize(11)
+  doc.setFont(undefined, 'normal')
+  currentY = addWrappedText(
+    `Nome: ${request.name}`,
+    marginLeft,
+    currentY,
+    170,
+    7
+  )
+  currentY = addWrappedText(
+    `Matrícula: ${request.register}`,
+    marginLeft,
+    currentY,
+    170,
+    7
+  )
+  currentY = addWrappedText(
+    `Email: ${request.email}`,
+    marginLeft,
+    currentY,
+    170,
+    7
+  )
+  currentY = addWrappedText(
+    `Curso: ${request.course}`,
+    marginLeft,
+    currentY,
+    170,
+    7
+  )
+  currentY = addWrappedText(
+    `Semestre: ${request.semester}`,
+    marginLeft,
+    currentY,
+    170,
+    7
+  )
 
   // --- Irregularidades ---
   currentY += 15
   doc.setFontSize(14)
+  doc.setFont(undefined, 'bold')
   doc.text('Irregularidades:', marginLeft, currentY)
 
-  doc.setFontSize(11)
   currentY += 10
+  doc.setFontSize(11)
+  doc.setFont(undefined, 'normal')
+
   if (request.irregularities?.length) {
     request.irregularities.forEach((item, index) => {
+      if (currentY + 7 > pageHeight - 20) {
+        doc.addPage()
+        currentY = 30
+      }
+
+      doc.setFont(undefined, 'bold')
       doc.text(`${index + 1}. ${item.name}`, marginLeft, currentY)
       currentY += 7
+
+      doc.setFont(undefined, 'normal')
+      currentY = addWrappedText(
+        `* ${item.description}`,
+        marginLeft,
+        currentY,
+        170,
+        7
+      )
     })
   } else {
-    doc.text('Nenhuma irregularidade registrada.', marginLeft, currentY)
-    currentY += 7
+    currentY = addWrappedText(
+      'Nenhuma irregularidade registrada.',
+      marginLeft,
+      currentY,
+      170,
+      7
+    )
   }
 
   // --- Observações ---
-  currentY += 10
+  currentY += 15
   doc.setFontSize(14)
+  doc.setFont(undefined, 'bold')
   doc.text('Observações:', marginLeft, currentY)
 
-  doc.setFontSize(11)
   currentY += 8
-  const obsText = doc.splitTextToSize(request.obs || '—', 170)
-  doc.text(obsText, marginLeft, currentY)
+  doc.setFontSize(11)
+  doc.setFont(undefined, 'normal')
+  currentY = addWrappedText(request.obs || '—', marginLeft, currentY, 170, 7)
 
   // --- Salvar PDF ---
   doc.save(`comprovante-${request.access_code}.pdf`)
 }
+
+// export const generatePDF = request => {
+//   const doc = new jsPDF()
+//   const marginLeft = 20
+//   let currentY = 30
+
+//   // --- Cabeçalho ---
+//   doc.setFontSize(20)
+//   doc.text('Comprovante de Solicitação', marginLeft, currentY)
+
+//   currentY += 20
+//   doc.setFontSize(12)
+//   doc.text(`Código de Acesso: ${request.access_code}`, marginLeft, currentY)
+
+//   currentY += 8
+//   doc.text(
+//     'Link para consulta: https://gradff-ufrj.web.app/',
+//     marginLeft,
+//     currentY
+//   )
+
+//   currentY += 8
+//   doc.text(
+//     `Data:  ${formatTimestamp(request.created_at ?? new Date())}`,
+
+//     marginLeft,
+//     currentY
+//   )
+
+//   // --- Solicitante ---
+//   currentY += 15
+//   doc.setFontSize(14)
+//   doc.text('Dados do Solicitante:', marginLeft, currentY)
+
+//   doc.setFontSize(11)
+//   currentY += 10
+//   doc.text(`Nome: ${request.name}`, marginLeft, currentY)
+
+//   currentY += 8
+//   doc.text(`Matrícula: ${request.register}`, marginLeft, currentY)
+
+//   currentY += 8
+//   doc.text(`Email: ${request.email}`, marginLeft, currentY)
+
+//   currentY += 8
+//   doc.text(`Curso: ${request.course}`, marginLeft, currentY)
+
+//   currentY += 8
+//   doc.text(`Semestre: ${request.semester}`, marginLeft, currentY)
+
+//   // --- Irregularidades ---
+//   currentY += 15
+//   doc.setFontSize(14)
+//   doc.text('Irregularidades:', marginLeft, currentY)
+
+//   doc.setFontSize(11)
+//   currentY += 10
+//   if (request.irregularities?.length) {
+//     request.irregularities.forEach((item, index) => {
+//       doc.text(`${index + 1}. ${item.name}`, marginLeft, currentY)
+//       currentY += 7
+//       doc.text(`* ${item.description}`, marginLeft, currentY)
+//       currentY += 7
+//     })
+//   } else {
+//     doc.text('Nenhuma irregularidade registrada.', marginLeft, currentY)
+//     currentY += 7
+//   }
+
+//   // --- Observações ---
+//   currentY += 10
+//   doc.setFontSize(14)
+//   doc.text('Observações:', marginLeft, currentY)
+
+//   doc.setFontSize(11)
+//   currentY += 8
+//   const obsText = doc.splitTextToSize(request.obs || '—', 170)
+//   doc.text(obsText, marginLeft, currentY)
+
+//   // --- Salvar PDF ---
+//   doc.save(`comprovante-${request.access_code}.pdf`)
+// }

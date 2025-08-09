@@ -19,7 +19,7 @@ import {
   MoveLeft,
   Edit
 } from 'lucide-vue-next'
-import { formatTimestamp, getStatusColor } from '../helpers'
+import { formatTimestamp, formatDateLong, getStatusColor } from '../helpers'
 
 const route = useRoute()
 const requestStore = useRequestStore()
@@ -38,11 +38,6 @@ onMounted(async () => {
 
 const extractName = str => {
   return str.split(' - ')[1] || ''
-}
-
-const formatDateLong = date => {
-  const options = { year: 'numeric', month: 'long', day: 'numeric' }
-  return new Date(date).toLocaleDateString('pt-BR', options)
 }
 </script>
 
@@ -153,7 +148,7 @@ const formatDateLong = date => {
           >{{ extractName(request.coordinator) }}
         </p>
         <p
-          class="text-gray-700 font-normal whitespace-pre-wrap text-sm"
+          class="text-primary-800 font-normal whitespace-pre-wrap text-sm"
           v-if="request?.sentAt"
         >
           <span class="text-sm font-normal">E-mail enviado em: </span>

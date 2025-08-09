@@ -14,6 +14,11 @@ export const formatTimestamp = date => {
   return date?.toDate().toLocaleDateString('pt-BR') ?? '—'
 }
 
+export const formatDateLong = date => {
+  const options = { year: 'numeric', month: 'long', day: 'numeric' }
+  return new Date(date).toLocaleDateString('pt-BR', options)
+}
+
 export const statusOptions = [
   'Deferido',
   'Indeferido',

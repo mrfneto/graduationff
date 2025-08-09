@@ -3,7 +3,12 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRequestStore } from '@/stores/request'
 import { useCoordinatorStore } from '@/stores/coordinator'
-import { sendEmail, getStatusColor, formatTimestamp } from '@/helpers'
+import {
+  sendEmail,
+  getStatusColor,
+  formatTimestamp,
+  formatDateLong
+} from '@/helpers'
 
 //
 import { MoveLeft } from 'lucide-vue-next'
@@ -187,7 +192,13 @@ const handleSubmit = async () => {
       </BaseCard>
 
       <!-- Grupo 2: Parecer do Coordenador -->
-      <BaseCard title="Parecer do Coordenador">
+      <BaseCard
+        title="Parecer do Coordenador"
+        :description="
+          request.sentAt &&
+          `Parecer enviado via e-mail em: ${formatDateLong(request?.sentAt)}`
+        "
+      >
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <div class="grid md:grid-cols-2 gap-4">
             <BaseInput

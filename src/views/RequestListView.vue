@@ -92,7 +92,7 @@ onMounted(async () => {
           <BaseList
             v-for="request in filteredRequests"
             :key="request.id"
-            :to="{ name: 'request-datails', params: { id: request.id } }"
+            :to="{ name: 'request-details', params: { id: request.id } }"
           >
             <div class="flex justify-between items-start flex-wrap gap-2">
               <div>

@@ -44,8 +44,8 @@ const router = createRouter({
     },
     {
       path: '/request/:id/details',
-      name: 'request-datails',
-      component: () => import('../views/RequestDatailsView.vue'),
+      name: 'request-details',
+      component: () => import('../views/RequestDetailsView.vue'),
       meta: { requiresAuth: true, title: 'Detalhes do pedido' }
     },
     {

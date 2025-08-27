@@ -57,7 +57,9 @@ watch(
 
 onMounted(async () => {
   await semesterStore.get()
-  filters.value.semester = activeSemester.value?.name || ''
+  filters.value.semester = activeSemester.value?.name
+    ? activeSemester.value.name
+    : filters.value.semester
   await loadRequest()
   loading.value = false
 })

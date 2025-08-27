@@ -16,10 +16,11 @@ const authStore = useAuthStore()
 const semesterStore = useSemesterStore()
 const requestStore = useRequestStore()
 
-const loading = ref(true)
 const { filters, requests } = storeToRefs(requestStore)
 const { activeSemester } = storeToRefs(semesterStore)
 const { user } = storeToRefs(authStore)
+
+const loading = ref(true)
 
 const filteredRequests = computed(() =>
   requests.value.filter(r => {
@@ -48,10 +49,8 @@ const loadRequest = async () => {
 
 watch(
   () => filters.value.semester,
-  async newSemester => {
-    if (newSemester) {
-      loadRequest()
-    }
+  async () => {
+    await loadRequest()
   },
   { immediate: true }
 )

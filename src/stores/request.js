@@ -24,14 +24,13 @@ import { nanoid } from '../helpers'
 import { useSemesterStore } from './semester'
 
 export const useRequestStore = defineStore('request', () => {
-  const semesterStore = useSemesterStore()
   const requests = ref([])
 
   const collectionName = import.meta.env.VITE_FIREBASE_COLLECTION_REQUESTS
 
   const filters = ref({
     name: '',
-    semester: semesterStore.activeSemester?.title || '',
+    semester: '',
     course: '',
     status: 'Aguardando'
   })
@@ -86,7 +85,7 @@ export const useRequestStore = defineStore('request', () => {
 
     const uploadedFiles = []
     for (const file of newFiles) {
-      const uploaded = await uploadFile(file, payload.semester) 
+      const uploaded = await uploadFile(file, payload.semester)
       uploadedFiles.push(uploaded)
     }
 
@@ -98,7 +97,7 @@ export const useRequestStore = defineStore('request', () => {
       } else {
         payload.access_code = `${nanoid()}/${payload.semester}`
         payload.created_at = serverTimestamp()
-        await addDoc(collection(db, collectionName), payload) 
+        await addDoc(collection(db, collectionName), payload)
       }
       return payload.access_code
     } catch (error) {

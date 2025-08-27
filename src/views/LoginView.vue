@@ -68,12 +68,12 @@ const handleLogin = async () => {
       </BaseButton>
     </form>
 
-    <div class="mt-6 text-center">
+    <!-- <div class="mt-6 text-center">
       <p class="text-gray-600">
         <a href="#" class="text-primary-600 hover:text-primary-500 font-medium">
           Esqueceu a senha?
         </a>
       </p>
-    </div>
+    </div> -->
   </AuthLayout>
 </template>

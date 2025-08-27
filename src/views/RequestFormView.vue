@@ -147,7 +147,7 @@ const handleRemoveFile = async index => {
     :description="
       id
         ? 'Atualize as informações da sua solicitação'
-        : 'Preencha os dados para cadastrar uma novo solicitação'
+        : 'Preencha o formulário abaixo para solicitar regularização de matrícula.'
     "
   >
     <template #actions>

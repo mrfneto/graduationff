@@ -37,8 +37,9 @@ const handleLogin = async () => {
 <template>
   <AuthLayout>
     <div class="text-center mb-8">
-      <h2 class="text-3xl font-bold text-gray-900 mb-2">Bem-vindo de Volta</h2>
-      <p class="text-gray-600">Entre na sua conta para continuar</p>
+      <h2 class="text-2xl font-bold text-gray-900 mb-2">
+        Acesso restrito à secretaria/coordenação
+      </h2>
     </div>
 
     <form @submit.prevent="handleLogin" class="space-y-6">

@@ -131,6 +131,14 @@ onMounted(async () => {
         <BaseAlert variant="danger" v-if="state.errorMsg">
           <span aria-live="polite">{{ state.errorMsg }}</span>
         </BaseAlert>
+
+        <div class="mt-12 text-center">
+          <p class="text-xs text-gray-600 max-w-2xl mx-auto">
+            “Este sistema é destinado aos alunos para envio de solicitações
+            acadêmicas. O acesso administrativo é restrito à
+            secretaria/coordenação.”
+          </p>
+        </div>
       </div>
     </div>
   </AppLayout>

@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ChevronDown, Users } from 'lucide-vue-next'
+import { ChevronDown, Lock, Users } from 'lucide-vue-next'
 import AppLogo from '../ui/AppLogo.vue'
 import BaseButton from '../ui/BaseButton.vue'
 
@@ -161,9 +161,14 @@ const initials = computed(() => {
             </Transition>
           </div>
 
-          <BaseButton v-else :to="{ name: 'login' }" variant="secondary">
-            <Users class="size-4 mr-2" />
-            Área Admin<span class="hidden md:flex">istrativa</span>
+          <BaseButton
+            v-else
+            :to="{ name: 'login' }"
+            variant="secondary"
+            title="Acesso restrito à secretaria/coordenação"
+          >
+            <Lock class="size-4 mr-2" />
+            Acesso restrito
           </BaseButton>
         </div>
       </div>

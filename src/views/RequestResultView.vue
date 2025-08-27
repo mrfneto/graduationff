@@ -113,6 +113,7 @@ const extractName = str => {
         </div>
       </BaseCard>
 
+      <!-- IRREGULARITIES -->
       <BaseCard>
         <h2 class="text-lg font-bold mb-4">Irregularidades</h2>
         <div class="space-y-3">
@@ -123,7 +124,7 @@ const extractName = str => {
           >
             <span class="font-medium">{{ irr.name }}</span>
             <BaseBadge
-              v-if="request.status !== 'aguardando'"
+              v-if="request.status !== 'Aguardando'"
               :variant="irr.authorized ? 'success' : 'danger'"
             >
               {{ irr.authorized ? 'Autorizado' : 'Não autorizado' }}
@@ -132,6 +133,7 @@ const extractName = str => {
         </div>
       </BaseCard>
 
+      <!-- OPINIOS -->
       <BaseCard>
         <h2 class="text-lg font-bold mb-2">Parecer</h2>
         <p
@@ -178,6 +180,7 @@ const extractName = str => {
         </p>
       </BaseCard>
 
+      <!-- FILES -->
       <BaseCard v-if="request.files?.length">
         <h2 class="text-lg font-bold mb-4">Anexos</h2>
         <div class="space-y-2">

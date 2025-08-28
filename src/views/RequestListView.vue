@@ -4,13 +4,15 @@ import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 import { useSemesterStore } from '@/stores/semester'
 import { useRequestStore } from '@/stores/request'
-import { getStatusColor, formatTimestamp } from '@/helpers'
+import { getStatusColor, formatTimestamp, exportToCSV } from '@/helpers'
 import AppLayout from '@/components/layouts/AppLayout.vue'
 import RequestFilters from '../components/requests/RequestFilters.vue'
 import AppLoader from '../components/ui/AppLoader.vue'
 import BaseCard from '../components/ui/BaseCard.vue'
 import BaseList from '../components/ui/BaseList.vue'
 import BaseBadge from '../components/ui/BaseBadge.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
+import { FileDown } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const semesterStore = useSemesterStore()
@@ -39,13 +41,27 @@ const filteredRequests = computed(() =>
 )
 
 const loadRequest = async () => {
-  await requestStore.get([
-    {
-      field: 'semester',
-      value: filters.value.semester
-    }
-  ])
+  if (
+    !requestStore.hasRequests ||
+    requests.value[0]?.semester !== filters.value.semester
+  ) {
+    await requestStore.get([
+      {
+        field: 'semester',
+        value: filters.value.semester
+      }
+    ])
+  }
 }
+
+// const loadRequest = async () => {
+//   await requestStore.get([
+//     {
+//       field: 'semester',
+//       value: filters.value.semester
+//     }
+//   ])
+// }
 
 watch(
   () => filters.value.semester,
@@ -57,6 +73,7 @@ watch(
 
 onMounted(async () => {
   await semesterStore.get()
+  filters.value.status = filters.value.status ?? 'Aguardando'
   filters.value.semester = activeSemester.value?.name
     ? activeSemester.value.name
     : filters.value.semester
@@ -71,9 +88,20 @@ onMounted(async () => {
     :description="`Olá, ${user?.email}`"
   >
     <template #actions>
-      <span class="font-bold">
-        Total de pedidos: {{ filteredRequests.length }}
-      </span>
+      <div class="space-x-2">
+        <BaseButton
+          v-if="filteredRequests.length"
+          @click="exportToCSV(filteredRequests)"
+          variant="secondary"
+          icon
+          title="Exportar para CSV"
+        >
+          <FileDown class="w-4 h-4" />
+        </BaseButton>
+        <span class="font-bold">
+          Total de pedidos: {{ filteredRequests.length }}
+        </span>
+      </div>
     </template>
     <!-- Section: Filtros -->
     <RequestFilters />

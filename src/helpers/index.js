@@ -2,23 +2,28 @@ import jsPDF from 'jspdf'
 import emailjs from '@emailjs/browser'
 import { customAlphabet } from 'nanoid'
 
+// ⚙️ Configurações do nanoid para gerar códigos de acesso
 export const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6)
 
+// 🎨 Formata data de "YYYY-MM-DD" para "DD/MM/YYYY"
 export const formatDate = dateStr => {
   if (!dateStr) return ''
   const [year, month, day] = dateStr.split('-')
   return `${day}/${month}/${year}`
 }
 
+// 🎨 Formata timestamp do Firestore para data legível
 export const formatTimestamp = date => {
   return date?.toDate().toLocaleDateString('pt-BR') ?? '—'
 }
 
+// 🎨 Formata data em estilo longo
 export const formatDateLong = date => {
   const options = { year: 'numeric', month: 'long', day: 'numeric' }
   return new Date(date).toLocaleDateString('pt-BR', options)
 }
 
+// 🎨 Opções de status para filtros e seleção
 export const statusOptions = [
   'Deferido',
   'Indeferido',
@@ -26,6 +31,7 @@ export const statusOptions = [
   'Aguardando'
 ]
 
+// 🎨 Mapeia status para cores
 export const getStatusColor = status => {
   switch (status) {
     case 'Deferido':
@@ -39,6 +45,7 @@ export const getStatusColor = status => {
   }
 }
 
+// 📧 Envia e-mail ao solicitante com EmailJS
 export const sendEmail = async request => {
   const siteUrl = import.meta.env.VITE_SITE_URL
 
@@ -72,6 +79,7 @@ export const sendEmail = async request => {
   }
 }
 
+// 📄 Gera PDF do comprovante de solicitação
 export const generatePDF = request => {
   const doc = new jsPDF()
   const marginLeft = 20
@@ -221,84 +229,57 @@ export const generatePDF = request => {
   doc.save(`comprovante-${request.access_code}.pdf`)
 }
 
-// export const generatePDF = request => {
-//   const doc = new jsPDF()
-//   const marginLeft = 20
-//   let currentY = 30
+// 📥 Exporta dados para CSV
+export const exportToCSV = (data, filename = 'pedidos.csv') => {
+  if (!data.length) return
 
-//   // --- Cabeçalho ---
-//   doc.setFontSize(20)
-//   doc.text('Comprovante de Solicitação', marginLeft, currentY)
+  const headers = Object.keys(data[0])
+  const csvRows = [
+    headers.join(','), // cabeçalho
+    ...data.map(row =>
+      headers
+        .map(field => {
+          let value = row[field]
 
-//   currentY += 20
-//   doc.setFontSize(12)
-//   doc.text(`Código de Acesso: ${request.access_code}`, marginLeft, currentY)
+          // 🔄 Se for array, transforma em string separada por ponto e vírgula
+          if (Array.isArray(value)) {
+            value = value
+              .map(item => {
+                if (typeof item === 'object') {
+                  return JSON.stringify(item)
+                }
+                return item
+              })
+              .join('; ')
+          }
 
-//   currentY += 8
-//   doc.text(
-//     'Link para consulta: https://gradff-ufrj.web.app/',
-//     marginLeft,
-//     currentY
-//   )
+          // 🔄 Se for objeto, transforma em JSON
+          if (
+            typeof value === 'object' &&
+            value !== null &&
+            !Array.isArray(value)
+          ) {
+            value = JSON.stringify(value)
+          }
 
-//   currentY += 8
-//   doc.text(
-//     `Data:  ${formatTimestamp(request.created_at ?? new Date())}`,
+          // 🔄 Se for nulo ou indefinido
+          if (value === null || value === undefined) {
+            value = ''
+          }
 
-//     marginLeft,
-//     currentY
-//   )
+          // 🔄 Escapa aspas
+          return `"${value.toString().replace(/"/g, '""')}"`
+        })
+        .join(',')
+    )
+  ]
 
-//   // --- Solicitante ---
-//   currentY += 15
-//   doc.setFontSize(14)
-//   doc.text('Dados do Solicitante:', marginLeft, currentY)
-
-//   doc.setFontSize(11)
-//   currentY += 10
-//   doc.text(`Nome: ${request.name}`, marginLeft, currentY)
-
-//   currentY += 8
-//   doc.text(`Matrícula: ${request.register}`, marginLeft, currentY)
-
-//   currentY += 8
-//   doc.text(`Email: ${request.email}`, marginLeft, currentY)
-
-//   currentY += 8
-//   doc.text(`Curso: ${request.course}`, marginLeft, currentY)
-
-//   currentY += 8
-//   doc.text(`Semestre: ${request.semester}`, marginLeft, currentY)
-
-//   // --- Irregularidades ---
-//   currentY += 15
-//   doc.setFontSize(14)
-//   doc.text('Irregularidades:', marginLeft, currentY)
-
-//   doc.setFontSize(11)
-//   currentY += 10
-//   if (request.irregularities?.length) {
-//     request.irregularities.forEach((item, index) => {
-//       doc.text(`${index + 1}. ${item.name}`, marginLeft, currentY)
-//       currentY += 7
-//       doc.text(`* ${item.description}`, marginLeft, currentY)
-//       currentY += 7
-//     })
-//   } else {
-//     doc.text('Nenhuma irregularidade registrada.', marginLeft, currentY)
-//     currentY += 7
-//   }
-
-//   // --- Observações ---
-//   currentY += 10
-//   doc.setFontSize(14)
-//   doc.text('Observações:', marginLeft, currentY)
-
-//   doc.setFontSize(11)
-//   currentY += 8
-//   const obsText = doc.splitTextToSize(request.obs || '—', 170)
-//   doc.text(obsText, marginLeft, currentY)
-
-//   // --- Salvar PDF ---
-//   doc.save(`comprovante-${request.access_code}.pdf`)
-// }
+  const csvContent = csvRows.join('\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.setAttribute('download', filename)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}

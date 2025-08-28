@@ -25,6 +25,7 @@ import { useSemesterStore } from './semester'
 
 export const useRequestStore = defineStore('request', () => {
   const requests = ref([])
+  const requestsCache = ref({})
 
   const collectionName = import.meta.env.VITE_FIREBASE_COLLECTION_REQUESTS
 
@@ -40,10 +41,19 @@ export const useRequestStore = defineStore('request', () => {
 
   // 🔄 Busca registros com ordenação e filtro opcional
   const get = async (arrayFilters = []) => {
+    // alterado
+    const semestreFilter = arrayFilters.find(f => f.field === 'semester')
+    const semestre = semestreFilter?.value
+
+    if (semestre && requestsCache.value[semestre]) {
+      requests.value = requestsCache.value[semestre]
+      return
+    }
+
     try {
       let q = query(
         collection(db, collectionName),
-        orderBy('created_at', 'desc'),
+        orderBy('created_at', 'asc'),
         orderBy('name')
       )
 
@@ -52,10 +62,17 @@ export const useRequestStore = defineStore('request', () => {
       })
 
       const snapshot = await getDocs(q)
-      requests.value = snapshot.docs.map(docSnap => ({
+      const data = snapshot.docs.map(docSnap => ({
         id: docSnap.id,
         ...docSnap.data()
       }))
+
+      requests.value = data
+      if (semestre) {
+        requestsCache.value[semestre] = data
+      }
+
+      console.log('[RequestStore] Registros carregados:', requests.value.length)
     } catch (error) {
       console.error('[RequestStore] Erro ao buscar registros:', error)
     }
@@ -94,11 +111,18 @@ export const useRequestStore = defineStore('request', () => {
     try {
       if (id) {
         await updateDoc(doc(db, collectionName, id), payload)
+
+        // Atualiza o cache se o registro estiver presente
+        const index = requests.value.findIndex(r => r.id === id)
+        if (index !== -1) {
+          requests.value[index] = { ...requests.value[index], ...payload }
+        }
       } else {
         payload.access_code = `${nanoid()}/${payload.semester}`
         payload.created_at = serverTimestamp()
         await addDoc(collection(db, collectionName), payload)
       }
+
       return payload.access_code
     } catch (error) {
       console.error('[RequestStore] Erro ao salvar registro:', error)

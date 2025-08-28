@@ -62,17 +62,17 @@ const handleSubmit = async () => {
 
     await requestStore.save(request.value, id.value)
 
-    if (
-      request.value.status === 'Deferido-Parcial' ||
-      request.value.status === 'Indeferido'
-    ) {
-      await sendEmail(request.value)
-      request.value.sentAt = new Date().toISOString()
-      await requestStore.save(request.value, id.value)
-      await sweet.success('Parecer salvo e e-mail enviado com sucesso!')
-    } else {
-      await sweet.info('Parecer salvo com sucesso.')
-    }
+    // if (
+    //   request.value.status === 'Deferido-Parcial' ||
+    //   request.value.status === 'Indeferido'
+    // ) {
+    //   await sendEmail(request.value)
+    //   request.value.sentAt = new Date().toISOString()
+    //   await requestStore.save(request.value, id.value)
+    //   await sweet.success('Parecer salvo e e-mail enviado com sucesso!')
+    // } else {
+    //   await sweet.info('Parecer salvo com sucesso.')
+    // }
 
     // const confirmed = await sweet.confirm(
     //   'Deseja enviar e-mail com o parecer para o aluno?',
@@ -86,6 +86,7 @@ const handleSubmit = async () => {
     // } else {
     //   await sweet.info('Parecer salvo com sucesso.')
     // }
+    await sweet.info('Parecer salvo com sucesso.')
 
     router.push({ name: 'requests' })
   } catch (error) {

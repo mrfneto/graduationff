@@ -23,7 +23,7 @@ onMounted(async () => {
 <template>
   <BaseCard small class="card mb-6 space-y-4">
     <h2 class="text-xl font-bold mb-2">Filtros</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
       <BaseInput
         type="select"
         id="filter-semester"
@@ -56,8 +56,18 @@ onMounted(async () => {
         id="filter-status"
         class="capitalize"
         :options="statusOptions"
-        placeholder="todos"
+        placeholder="Todos"
         label="Status"
+        :disabled="!filters.semester"
+      />
+      <BaseInput
+        type="select"
+        v-model="filters.siga"
+        id="filter-siga"
+        class="capitalize"
+        :options="['Sim', 'Não']"
+        placeholder="Todos"
+        label="Efetivado no SIGA"
         :disabled="!filters.semester"
       />
     </div>

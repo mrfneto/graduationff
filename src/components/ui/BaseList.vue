@@ -3,12 +3,14 @@ import { Edit } from 'lucide-vue-next'
 import BaseButton from './BaseButton.vue'
 
 defineProps({
-  to: [String, Object]
+  to: [String, Object],
+  active: Boolean
 })
 </script>
 <template>
   <li
     class="bg-white px-4 py-2 rounded-md shadow-sm flex items-start space-x-3"
+    :class="active ? 'border-2 border-primary-500' : ''"
   >
     <div class="flex-1 overflow-hidden text-ellipsis">
       <slot />

@@ -29,14 +29,23 @@ const filteredRequests = computed(() =>
     const nameMatch = r.name
       .toLowerCase()
       .includes(filters.value.name.toLowerCase())
+
     const semesterMatch = filters.value.semester
       ? r.semester === filters.value.semester
       : true
+
     const courseMatch =
       filters.value.course === '' || r.course === filters.value.course
+
     const statusMatch =
       filters.value.status === '' || r.status === filters.value.status
-    return nameMatch && semesterMatch && courseMatch && statusMatch
+
+    const sigaMatch =
+      filters.value.siga === '' ||
+      (filters.value.siga === 'Sim' && r.siga === true) ||
+      (filters.value.siga === 'Não' && r.siga === false)
+
+    return nameMatch && semesterMatch && courseMatch && statusMatch && sigaMatch
   })
 )
 
@@ -53,15 +62,6 @@ const loadRequest = async () => {
     ])
   }
 }
-
-// const loadRequest = async () => {
-//   await requestStore.get([
-//     {
-//       field: 'semester',
-//       value: filters.value.semester
-//     }
-//   ])
-// }
 
 watch(
   () => filters.value.semester,
@@ -119,6 +119,7 @@ onMounted(async () => {
 
         <div class="space-y-2" v-else>
           <BaseList
+            :active="request.siga"
             v-for="request in filteredRequests"
             :key="request.id"
             :to="{ name: 'request-details', params: { id: request.id } }"
@@ -126,9 +127,6 @@ onMounted(async () => {
             <div class="flex justify-between items-start flex-wrap gap-2">
               <div>
                 <h2 class="font-semibold text-lg">{{ request.name }}</h2>
-                <!-- <p class="text-sm text-gray-500">
-                  {{ request.register }} — {{ request.course }}
-                </p> -->
               </div>
             </div>
 
@@ -138,6 +136,9 @@ onMounted(async () => {
               <div class="text-xs">
                 <p>{{ request.email }}</p>
                 <p>DRE: {{ request.register }} - {{ request.course }}</p>
+                <p class="text-sm text-green-700 mt-1" v-if="request.siga">
+                  Efetivado no SIGA
+                </p>
               </div>
               <div>
                 <strong class="block text-gray-500">Semestre</strong>

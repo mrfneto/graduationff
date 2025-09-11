@@ -33,7 +33,8 @@ export const useRequestStore = defineStore('request', () => {
     name: '',
     semester: '',
     course: '',
-    status: 'Aguardando'
+    status: 'Aguardando',
+    siga: ''
   })
 
   // ✅ Computado auxiliar
@@ -72,7 +73,7 @@ export const useRequestStore = defineStore('request', () => {
         requestsCache.value[semestre] = data
       }
 
-      console.log('[RequestStore] Registros carregados:', requests.value.length)
+      // console.log('[RequestStore] Registros carregados:', requests.value.length)
     } catch (error) {
       console.error('[RequestStore] Erro ao buscar registros:', error)
     }

@@ -32,7 +32,7 @@ const handleLogout = async () => {
     await logout()
     router.replace({ name: 'login' })
   } catch (error) {
-    console.log('Erro ao fazer logout:', error)
+    console.error('Erro ao fazer logout:', error)
   }
 }
 

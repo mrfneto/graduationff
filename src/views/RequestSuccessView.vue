@@ -21,21 +21,6 @@ const state = reactive({
 
 const code = computed(() => route.params.code)
 
-const getRequest = async codeValue => {
-  try {
-    const results = await requestStore.get([
-      {
-        field: 'access_code',
-        value: code.value
-      }
-    ])
-    if (!results.length) throw new Error('Código não encontrado.')
-    return results[0]
-  } catch (error) {
-    throw new Error(error.message || 'Erro ao buscar a solicitação.')
-  }
-}
-
 const downloadPDF = async () => {
   state.loading = true
   state.error = null

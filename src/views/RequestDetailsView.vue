@@ -186,19 +186,16 @@ const handleSubmit = async () => {
             </div>
 
             <!-- Documentos do aluno -->
-            <div v-if="request.files?.length">
-              <h3 class="text-lg font-semibold">Arquivos Anexados</h3>
-              <ul class="list-disc ml-6">
-                <li v-for="file in request.files" :key="file.name">
-                  <a
-                    :href="file.url"
-                    target="_blank"
-                    class="text-blue-600 underline"
-                  >
-                    {{ file.name }}
-                  </a>
-                </li>
-              </ul>
+            <div v-if="request.driveLink">
+              <h3 class="text-lg font-semibold">Documentos</h3>
+              <a
+                :href="request.driveLink"
+                target="_blank"
+                rel="noopener"
+                class="text-blue-600 underline break-all"
+              >
+                Abrir documentos no Google Drive
+              </a>
             </div>
           </div>
         </div>

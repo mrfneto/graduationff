@@ -5,6 +5,24 @@ Todas as mudanças relevantes deste projeto serão documentadas aqui.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/)
 e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [Unreleased]
+
+### Changed
+- Substituído o upload de arquivos (Firebase Storage) por um campo de link do Google Drive (`driveLink`) para o aluno anexar os documentos.
+- `RequestDetailsView` e `RequestResultView` agora exibem um link para os documentos no Drive em vez da lista de arquivos.
+
+### Removed
+- Removida a dependência do Firebase Storage (`getStorage`, `uploadFile`, `removeFile`) e o componente `BaseUpload.vue`.
+- Removido `vercel.json` (deploy consolidado apenas em Firebase Hosting).
+- Removidos arquivos não utilizados: `src/components/modelo.vue` e a imagem de logo duplicada.
+
+### Fixed
+- Corrigido redirecionamento para rota inexistente (`'request'` → `'requests'`) no guard de rotas `requiresGuest`.
+- Corrigido vazamento de listener do Firebase Auth: `getCurrentUser()` criava um novo `onAuthStateChanged` a cada navegação de rota, sem `unsubscribe`.
+- Removida função morta e quebrada (`getRequest`) em `RequestSuccessView.vue`.
+- Trocados `console.log` residuais por `console.error` em tratamento de erros (`AppLayout.vue`, `LoginView.vue`).
+- `.gitignore` agora ignora `.env` e `.env.local` explicitamente (antes só cobria `.env.production` e `*.local`).
+
 ## [0.4.0] - 2025-08-05
 
 ### Added

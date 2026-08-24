@@ -181,18 +181,17 @@ const extractName = str => {
       </BaseCard>
 
       <!-- FILES -->
-      <BaseCard v-if="request.files?.length">
-        <h2 class="text-lg font-bold mb-4">Anexos</h2>
-        <div class="space-y-2">
-          <div
-            v-for="(file, index) in request.files"
-            :key="index"
-            class="flex items-center gap-2 p-2 bg-gray-50 rounded"
-          >
-            <FileText class="w-4 h-4 text-gray-500" />
-            <span class="text-sm">{{ file.name }}</span>
-          </div>
-        </div>
+      <BaseCard v-if="request.driveLink">
+        <h2 class="text-lg font-bold mb-4">Documentos</h2>
+        <a
+          :href="request.driveLink"
+          target="_blank"
+          rel="noopener"
+          class="flex items-center gap-2 p-2 bg-gray-50 rounded text-primary-600 underline break-all"
+        >
+          <FileText class="w-4 h-4 text-gray-500 shrink-0" />
+          <span class="text-sm">Abrir documentos no Google Drive</span>
+        </a>
       </BaseCard>
     </div>
   </AppLayout>

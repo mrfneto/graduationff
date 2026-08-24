@@ -22,7 +22,7 @@ Este projeto é um sistema para gerenciamento de semestres acadêmicos, coordena
 - **Semestres**: listar, criar, editar e excluir semestres, com status (ativo, previsto, encerrado).
 - **Coordenadores**: gerenciar coordenadores com campos nome, SIAPE e status ativo/inativo.
 - **Solicitações**: listar, filtrar, criar, editar e visualizar detalhes das solicitações de regularização.
-- Upload de documentos anexos, status e pareceres de análise.
+- Documentos anexos via link do Google Drive informado pelo aluno, status e pareceres de análise.
 
 ## Estrutura
 

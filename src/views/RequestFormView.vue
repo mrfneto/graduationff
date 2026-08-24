@@ -14,7 +14,6 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
-import BaseUpload from '@/components/ui/BaseUpload.vue'
 import RequestIrregularities from '@/components/requests/RequestIrregularities.vue'
 
 // Stores
@@ -34,7 +33,7 @@ const form = ref({
   course: '',
   semester: '',
   irregularities: [],
-  files: [],
+  driveLink: '',
   obs: '',
   status: 'Aguardando',
   feedback: '',
@@ -43,6 +42,9 @@ const form = ref({
 })
 
 const errors = ref({})
+
+// Aceita links de arquivo, pasta ou apresentação do Google Drive/Docs
+const driveLinkPattern = /^https:\/\/(drive|docs)\.google\.com\/.+/i
 
 // Estado reativo da view
 const state = reactive({
@@ -86,8 +88,12 @@ const handleSubmit = async () => {
       errors.value.irregularities = 'Adicione pelo menos uma irregularidade.'
     }
 
-    if (!form.value.files.length) {
-      errors.value.files = 'Envie pelo menos um documento (PDF).'
+    const driveLink = form.value.driveLink.trim()
+    if (!driveLink) {
+      errors.value.driveLink = 'Informe o link do Google Drive com os documentos.'
+    } else if (!driveLinkPattern.test(driveLink)) {
+      errors.value.driveLink =
+        'Informe um link válido do Google Drive (drive.google.com ou docs.google.com).'
     }
 
     if (Object.keys(errors.value).length > 0) {
@@ -126,19 +132,6 @@ const handleDelete = async () => {
   }
 }
 
-// Remoção de arquivo
-const handleRemoveFile = async index => {
-  if (!hasActiveSemester.value) return
-  const file = form.value.files[index]
-  if (file?.path) {
-    try {
-      await requestStore.removeFile(file.path)
-    } catch (err) {
-      console.error('Erro ao remover arquivo:', err)
-    }
-  }
-  form.value.files.splice(index, 1)
-}
 </script>
 
 <template>
@@ -225,7 +218,16 @@ const handleRemoveFile = async index => {
             >
               Documentos
             </h3>
-            <BaseUpload v-model="form.files" />
+            <BaseInput
+              id="driveLink"
+              type="url"
+              v-model="form.driveLink"
+              label="Link do Google Drive"
+              placeholder="https://drive.google.com/drive/folders/..."
+              :error="errors.driveLink"
+              hint="Crie uma pasta no Google Drive com a CRID, o BOA (se concluinte) e demais documentos necessários, defina o acesso como 'Qualquer pessoa com o link pode visualizar' e cole o link aqui."
+              required
+            />
           </div>
 
           <!-- Observações -->

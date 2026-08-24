@@ -105,7 +105,7 @@ router.beforeEach(async (to, from, next) => {
   const isAutenticated = await authStore.getCurrentUser()
 
   if (requiresAuth && !isAutenticated) next({ name: 'login' })
-  else if (requiresGuest && isAutenticated) next({ name: 'request' })
+  else if (requiresGuest && isAutenticated) next({ name: 'requests' })
   else next()
 })
 

@@ -177,6 +177,19 @@ const handleSubmit = async () => {
                 </p>
               </div>
 
+              <!-- Resposta do aluno a uma pendência (se houver) -->
+              <div
+                v-if="item.pendingResponse"
+                class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md"
+              >
+                <p class="text-sm font-semibold text-yellow-900">
+                  Resposta do aluno à pendência:
+                </p>
+                <p class="text-sm text-yellow-900 whitespace-pre-wrap">
+                  {{ item.pendingResponse }}
+                </p>
+              </div>
+
               <div class="mt-2" v-if="item.status !== 'Autorizado'">
                 <label
                   :for="`coordinator-note-${index}`"

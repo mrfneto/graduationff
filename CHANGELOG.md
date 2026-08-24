@@ -7,7 +7,18 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Fixed
+- `BaseAlert.vue` usava `<span>` (inline) como elemento raiz — ao colocar
+  parágrafos/listas dentro (ex.: alertas de pendência/recurso), o HTML
+  ficava inválido e o box quebrava visualmente, sem largura responsiva
+  (`w-full` não tem efeito em elemento inline). Trocado para `<div>`.
+
 ### Added
+- Campo próprio (`pendingResponse`) para o aluno responder a uma
+  irregularidade "Pendente", sem sobrescrever a justificativa original
+  (`description`) — mesmo princípio já usado no recurso (`appeal`).
+  Visível para a coordenação (RequestDetailsView) e ecoado de volta para
+  o aluno (RequestResultView).
 - Campo **"Consultar parecer a partir de"** (`resultDate`) no cadastro de
   semestre — substitui o aviso por e-mail. Exibido na Home (semestre
   ativo) e na consulta de status (enquanto "Aguardando").

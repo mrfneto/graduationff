@@ -178,6 +178,9 @@ const extractName = str => {
             <p v-if="irr.appeal" class="text-sm text-gray-600 mt-2">
               <strong>Seu recurso:</strong> {{ irr.appeal }}
             </p>
+            <p v-if="irr.pendingResponse" class="text-sm text-gray-600 mt-2">
+              <strong>Sua resposta:</strong> {{ irr.pendingResponse }}
+            </p>
             <p
               v-if="irr.status === 'Não autorizado' && !irr.appealUsed"
               class="text-sm text-primary-700 mt-2"

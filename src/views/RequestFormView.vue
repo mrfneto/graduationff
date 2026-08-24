@@ -333,17 +333,24 @@ const handleDelete = async () => {
                   {{ irr.coordinatorNote }}
                 </p>
 
-                <!-- Pendente: aluno atualiza a justificativa -->
+                <!-- Recurso já enviado anteriormente (histórico) -->
+                <p v-if="irr.appeal" class="text-sm text-gray-600 mt-1">
+                  <strong>Seu recurso:</strong> {{ irr.appeal }}
+                </p>
+
+                <!-- Pendente: aluno responde num campo próprio, sem
+                     sobrescrever a justificativa original -->
                 <div v-if="irr.status === 'Pendente'" class="mt-2">
                   <label
-                    :for="`irr-desc-${index}`"
+                    :for="`irr-response-${index}`"
                     class="text-sm font-semibold block mb-1"
                   >
-                    Atualize a justificativa
+                    Responda à pendência
                   </label>
                   <textarea
-                    :id="`irr-desc-${index}`"
-                    v-model="irr.description"
+                    :id="`irr-response-${index}`"
+                    v-model="irr.pendingResponse"
+                    placeholder="Explique o que foi corrigido ou complementado nesta irregularidade..."
                     class="w-full border border-gray-300 rounded-md p-2 text-sm min-h-[80px]"
                     required
                   ></textarea>

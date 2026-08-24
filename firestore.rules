@@ -64,7 +64,6 @@ service cloud.firestore {
         request.resource.data.siga == false &&
         !('opinion' in request.resource.data) &&
         !('coordinator' in request.resource.data) &&
-        !('sentAt' in request.resource.data) &&
         request.resource.data.name is string && request.resource.data.name.size() > 0 &&
         request.resource.data.email is string && request.resource.data.email.size() > 0 &&
         request.resource.data.register is string &&
@@ -75,40 +74,41 @@ service cloud.firestore {
       // Atualização:
       // - secretaria/coordenação: acesso total (parecer, status, SIGA etc).
       // - o próprio aluno (sem login): enquanto o pedido não estiver com
-      //   decisão 100% final (Deferido ou Indeferido). Isso cobre
-      //   "Aguardando" e também os status que podem conter irregularidades
-      //   ainda "Pendente" (Pendente, Deferido-Parcial, Indeferido-Parcial
-      //   — ver computeRequestStatus em src/helpers/index.js). O pedido
-      //   sai da edição do aluno sempre como "Aguardando" (volta pra fila
-      //   de análise), e ele não pode alterar os campos de decisão da
-      //   coordenação, o código de acesso ou o semestre.
+      //   decisão 100% final e sem nada mais a fazer (só "Deferido" — total
+      //   aprovação — é totalmente travado). Todo o resto ("Aguardando",
+      //   "Pendente", "Deferido-Parcial", "Indeferido-Parcial" e mesmo
+      //   "Indeferido") pode ter irregularidades ainda "Pendente" ou
+      //   "Não autorizado" com recurso disponível (ver computeRequestStatus
+      //   e RequestFormView.vue). O pedido sai da edição do aluno sempre
+      //   como "Aguardando" (volta pra fila de análise), e ele não pode
+      //   alterar os campos de decisão da coordenação, o código de acesso
+      //   ou o semestre.
       //
       // OBS 1: a UI (src/views/RequestFormView.vue) só permite editar de
-      // fato quando existe uma irregularidade especificamente "Pendente",
-      // uma checagem mais fina do que dá pra expressar aqui — o Firestore
-      // Rules não tem como iterar a lista "irregularities" e inspecionar
-      // um campo de cada item. Ou seja, esta regra é intencionalmente um
-      // pouco mais permissiva que a UI (ex.: tecnicamente permite editar
-      // um Deferido-Parcial cuja "parcialidade" veio só de um item
-      // Não-autorizado, sem nenhum Pendente) — não é uma falha de
-      // segurança, só uma simplificação sem exposição de dados de terceiros.
+      // fato os campos de uma irregularidade "Pendente", ou o texto de
+      // recurso de uma "Não autorizado" ainda sem recurso usado — uma
+      // checagem bem mais fina do que dá pra expressar aqui, já que o
+      // Firestore Rules não tem como iterar a lista "irregularities" e
+      // inspecionar um campo de cada item. Esta regra é intencionalmente
+      // mais permissiva que a UI — não é uma falha de segurança (nenhum
+      // dado de terceiros é exposto), só uma simplificação.
       //
       // OBS 2: também não validamos aqui o conteúdo interno de cada item
       // da lista "irregularities" (ex.: impedir que o aluno altere
-      // status/coordinatorNote de um item existente) — isso não é feito
-      // pela UI, mas um cliente malicioso poderia manipular a requisição
-      // diretamente. Se isso for uma preocupação real, considere mover a
-      // decisão final para uma Cloud Function em vez de escrita direta do
-      // cliente.
+      // status/coordinatorNote/appealUsed de um item existente, ou marque
+      // um recurso como usado sem realmente ter enviado um) — isso não é
+      // feito pela UI, mas um cliente malicioso poderia manipular a
+      // requisição diretamente. Se isso for uma preocupação real,
+      // considere mover a decisão final para uma Cloud Function em vez de
+      // escrita direta do cliente.
       allow update: if isStaff() || (
-        !(resource.data.status in ['Deferido', 'Indeferido']) &&
+        resource.data.status != 'Deferido' &&
         request.resource.data.status == 'Aguardando' &&
         request.resource.data.access_code == resource.data.access_code &&
         request.resource.data.semester == resource.data.semester &&
         request.resource.data.siga == resource.data.get('siga', false) &&
         request.resource.data.get('opinion', null) == resource.data.get('opinion', null) &&
-        request.resource.data.get('coordinator', null) == resource.data.get('coordinator', null) &&
-        request.resource.data.get('sentAt', null) == resource.data.get('sentAt', null)
+        request.resource.data.get('coordinator', null) == resource.data.get('coordinator', null)
       );
 
       // Exclusão: secretaria/coordenação a qualquer momento, ou o próprio

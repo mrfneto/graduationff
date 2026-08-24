@@ -4,10 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useRequestStore } from '@/stores/request'
 import { useCoordinatorStore } from '@/stores/coordinator'
 import {
-  sendEmail,
   getStatusColor,
   formatTimestamp,
-  formatDateLong,
   irregularityStatusOptions,
   computeRequestStatus
 } from '@/helpers'
@@ -31,7 +29,6 @@ const coordinatorStore = useCoordinatorStore()
 const request = ref(null)
 const loading = ref(true)
 const saving = ref(false)
-const sendingEmail = ref(false)
 
 const id = computed(() => route.params.id || null)
 
@@ -62,25 +59,7 @@ const handleSubmit = async () => {
     request.value.status = previewStatus.value
 
     await requestStore.save(request.value, id.value)
-
-    // 📧 E-mail automático sempre que houver pendência ou indeferimento
-    // (ou seja, qualquer status que não seja "Deferido"). Aprovação total
-    // não dispara e-mail automático, mas pode ser enviada manualmente.
-    if (request.value.status !== 'Deferido') {
-      try {
-        await sendEmail(request.value)
-        request.value.sentAt = new Date().toISOString()
-        await requestStore.save(request.value, id.value)
-        await sweet.success('Parecer salvo e e-mail enviado ao aluno automaticamente.')
-      } catch (emailError) {
-        console.error('Erro ao enviar e-mail automático:', emailError)
-        await sweet.info(
-          'Parecer salvo, mas não foi possível enviar o e-mail automaticamente. Use o botão "Enviar E-mail ao Aluno" para tentar novamente.'
-        )
-      }
-    } else {
-      await sweet.info('Parecer salvo com sucesso.')
-    }
+    await sweet.info('Parecer salvo com sucesso.')
 
     router.push({ name: 'requests' })
   } catch (error) {
@@ -88,23 +67,6 @@ const handleSubmit = async () => {
     await sweet.error('Ocorreu um erro ao salvar.')
   } finally {
     saving.value = false
-  }
-}
-
-// 📧 Envio manual do e-mail de notificação ao aluno — para reenviar, ou
-// para notificar manualmente em caso de aprovação total (Deferido).
-const handleSendEmail = async () => {
-  sendingEmail.value = true
-  try {
-    await sendEmail(request.value)
-    request.value.sentAt = new Date().toISOString()
-    await requestStore.save(request.value, id.value)
-    await sweet.success('E-mail enviado ao aluno com sucesso!')
-  } catch (error) {
-    console.error('Erro ao enviar e-mail:', error)
-    await sweet.error('Não foi possível enviar o e-mail. Tente novamente.')
-  } finally {
-    sendingEmail.value = false
   }
 }
 </script>
@@ -164,7 +126,15 @@ const handleSendEmail = async () => {
               class="bg-gray-100 rounded-md p-2"
             >
               <div class="grid md:grid-cols-2 md:gap-4 items-center mb-1">
-                <span class="font-medium">{{ item.name }}</span>
+                <span class="font-medium">
+                  {{ item.name }}
+                  <span
+                    v-if="item.appealUsed"
+                    class="text-xs font-normal text-gray-500"
+                  >
+                    (recurso já utilizado)
+                  </span>
+                </span>
 
                 <div class="space-x-4 flex items-center flex-wrap">
                   <label
@@ -193,6 +163,20 @@ const handleSendEmail = async () => {
                   {{ item.description }}
                 </p>
               </div>
+
+              <!-- Recurso enviado pelo aluno (se houver) -->
+              <div
+                v-if="item.appeal"
+                class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md"
+              >
+                <p class="text-sm font-semibold text-blue-900">
+                  Recurso do aluno:
+                </p>
+                <p class="text-sm text-blue-900 whitespace-pre-wrap">
+                  {{ item.appeal }}
+                </p>
+              </div>
+
               <div class="mt-2" v-if="item.status !== 'Autorizado'">
                 <label
                   :for="`coordinator-note-${index}`"
@@ -229,13 +213,7 @@ const handleSendEmail = async () => {
       </BaseCard>
 
       <!-- Grupo 2: Parecer do Coordenador -->
-      <BaseCard
-        title="Parecer do Coordenador"
-        :description="
-          request.sentAt &&
-          `Parecer enviado via e-mail em: ${formatDateLong(request?.sentAt)}`
-        "
-      >
+      <BaseCard title="Parecer do Coordenador">
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <div class="grid md:grid-cols-2 gap-4">
             <BaseInput
@@ -245,7 +223,7 @@ const handleSendEmail = async () => {
               label="Parecer do coordenador"
               placeholder="Informe o parecer aqui"
               required
-              hint="Em caso de pendência corrigível, marque a irregularidade como 'Pendente' e use a observação — o aluno poderá editar e reenviar a solicitação pelo próprio sistema."
+              hint="Em caso de pendência corrigível, marque a irregularidade como 'Pendente' e use a observação — o aluno poderá editar e reenviar a solicitação pelo próprio sistema. Se indeferir, o aluno poderá abrir um recurso (uma única vez por irregularidade)."
             />
 
             <div>
@@ -297,20 +275,6 @@ const handleSendEmail = async () => {
           <div class="flex items-center flex-wrap gap-4">
             <BaseButton :loading="saving" class="flex-1">
               Salvar Parecer
-            </BaseButton>
-            <BaseButton
-              type="button"
-              variant="secondary"
-              :loading="sendingEmail"
-              :disabled="request.status === 'Aguardando'"
-              :title="
-                request.status === 'Aguardando'
-                  ? 'Salve o parecer antes de enviar o e-mail'
-                  : 'Enviar e-mail com o parecer para o aluno'
-              "
-              @click="handleSendEmail"
-            >
-              Enviar E-mail ao Aluno
             </BaseButton>
             <BaseButton
               :to="{ name: 'requests' }"

@@ -12,6 +12,7 @@ import {
   getDoc,
   orderBy,
   limit,
+  where,
   serverTimestamp
 } from 'firebase/firestore'
 
@@ -73,6 +74,23 @@ export const useSemesterStore = defineStore('semester', () => {
     }
   }
 
+  // 🔍 Buscar pelo nome (ex.: "2025-2") — usado para achar a data de
+  // consulta do parecer (resultDate) do semestre de uma solicitação.
+  const getByName = async name => {
+    try {
+      const q = query(
+        collection(db, collectionName),
+        where('name', '==', name),
+        limit(1)
+      )
+      const snapshot = await getDocs(q)
+      return snapshot.empty ? null : { ...snapshot.docs[0].data() }
+    } catch (error) {
+      console.error('[SemesterStore] Erro ao buscar semestre por nome:', error)
+      return null
+    }
+  }
+
   // 💾 Criar ou atualizar semestre
   const save = async (semester, id = null) => {
     const payload = { ...semester, update_at: serverTimestamp() }
@@ -104,6 +122,7 @@ export const useSemesterStore = defineStore('semester', () => {
     predictedSemester,
     get,
     getById,
+    getByName,
     save,
     remove
   }

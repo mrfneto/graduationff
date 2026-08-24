@@ -92,13 +92,19 @@ onMounted(async () => {
           v-else
           class="flex flex-col space-y-4 w-full md:max-w-1/2 mx-auto mb-8"
         >
-          <BaseButton
-            v-if="activeSemester"
-            :to="{ name: 'request-create' }"
-            aria-label="Solicitar regularização de disciplinas"
-          >
-            Solicitar Regularização
-          </BaseButton>
+          <template v-if="activeSemester">
+            <BaseButton
+              :to="{ name: 'request-create' }"
+              aria-label="Solicitar regularização de disciplinas"
+            >
+              Solicitar Regularização
+            </BaseButton>
+            <p v-if="activeSemester.resultDate" class="text-sm text-gray-600">
+              Não enviamos e-mail de aviso — consulte o parecer da sua
+              solicitação (com seu código de acesso) a partir de
+              <strong>{{ formatDate(activeSemester.resultDate) }}</strong>.
+            </p>
+          </template>
 
           <BaseAlert variant="warning" v-else-if="predictedSemester">
             O período para solicitar regularização será de

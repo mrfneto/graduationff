@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf'
-import emailjs from '@emailjs/browser'
 import { customAlphabet } from 'nanoid'
 
 // ⚙️ Configurações do nanoid para gerar códigos de acesso
@@ -84,40 +83,6 @@ export const getStatusColor = status => {
       return 'warning'
     default:
       return 'default'
-  }
-}
-
-// 📧 Envia e-mail ao solicitante com EmailJS
-export const sendEmail = async request => {
-  const siteUrl = import.meta.env.VITE_SITE_URL
-
-  const irregularitiesSummary = request.irregularities
-    .map(irregularity => {
-      const line = `- ${irregularity.name}: ${irregularity.status}`
-      return irregularity.status === 'Autorizado' || !irregularity.coordinatorNote
-        ? line
-        : `${line}\n  Observação da coordenação: ${irregularity.coordinatorNote}`
-    })
-    .join('\n')
-
-  try {
-    await emailjs.send(
-      import.meta.env.VITE_EMAILJS_SERVICE_ID,
-      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-      {
-        to_name: request.name,
-        to_email: request.email,
-        status: request.status,
-        access_code: request.access_code,
-        message: request.opinion,
-        irregularities_summary: irregularitiesSummary,
-        site_url: siteUrl
-      },
-      import.meta.env.VITE_PUBLIC_KEY
-    )
-  } catch (error) {
-    console.error('Erro ao enviar e-mail:', error)
-    throw error // ou lidar de outra forma
   }
 }
 

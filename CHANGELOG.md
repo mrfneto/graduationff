@@ -8,6 +8,19 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 ## [Unreleased]
 
 ### Added
+- Campo **"Consultar parecer a partir de"** (`resultDate`) no cadastro de
+  semestre — substitui o aviso por e-mail. Exibido na Home (semestre
+  ativo) e na consulta de status (enquanto "Aguardando").
+- **Recurso por irregularidade**: quando uma irregularidade é indeferida,
+  o aluno pode abrir um recurso (justificativa de texto, uma única vez por
+  irregularidade) editando a solicitação. Ao enviar, a irregularidade
+  volta para "Pendente" e o pedido reentra na fila de análise; a
+  coordenação vê o recurso destacado ao lado da própria observação.
+- Edição de pedido já analisado agora é **restrita**: dados pessoais,
+  link do Drive e observações ficam somente-leitura; só é possível editar
+  a justificativa de uma irregularidade "Pendente" ou o texto de recurso
+  de uma "Não autorizada" ainda sem recurso usado. Antes da primeira
+  análise (status "Aguardando"), a edição continua completa.
 - Cada irregularidade agora tem um status individual (`item.status`):
   **Autorizado**, **Não autorizado** ou **Pendente** — antes era um simples
   booleano `authorized`.
@@ -25,18 +38,16 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Pedidos com ao menos uma irregularidade "Pendente" voltam a ficar
   editáveis para o aluno; ao reenviar, o status do pedido retorna
   automaticamente para "Aguardando" (nova fila de análise).
-- Botão "Enviar E-mail ao Aluno" na análise do coordenador, reativando o
-  envio via EmailJS (existia no código, mas estava todo comentado).
-- **E-mail automático** ao salvar o parecer sempre que o status calculado
-  do pedido não for "Deferido" (ou seja, qualquer caso com pendência ou
-  indeferimento, total ou parcial). Aprovação total não dispara e-mail
-  automático, mas pode ser enviada manualmente pelo mesmo botão.
 
 ### Changed
 - Substituído o upload de arquivos (Firebase Storage) por um campo de link do Google Drive (`driveLink`) para o aluno anexar os documentos.
 - `RequestDetailsView` e `RequestResultView` agora exibem um link para os documentos no Drive em vez da lista de arquivos.
 
 ### Removed
+- Módulo de e-mail (EmailJS) removido por completo: dependência
+  `@emailjs/browser`, `sendEmail()`, botão "Enviar E-mail ao Aluno", envio
+  automático, campo `sentAt` e variáveis `VITE_EMAILJS_*`/`VITE_PUBLIC_KEY`/
+  `VITE_SITE_URL` do `.env`.
 - Removida a dependência do Firebase Storage (`getStorage`, `uploadFile`, `removeFile`) e o componente `BaseUpload.vue`.
 - Removido `vercel.json` (deploy consolidado apenas em Firebase Hosting).
 - Removidos arquivos não utilizados: `src/components/modelo.vue` e a imagem de logo duplicada.

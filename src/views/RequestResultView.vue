@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRequestStore } from '@/stores/request'
+import { useSemesterStore } from '@/stores/semester'
 
 import AppLayout from '@/components/layouts/AppLayout.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
@@ -20,12 +21,14 @@ import {
   MoveLeft,
   Edit
 } from 'lucide-vue-next'
-import { formatTimestamp, formatDateLong, getStatusColor } from '../helpers'
+import { formatTimestamp, formatDate, getStatusColor } from '../helpers'
 
 const route = useRoute()
 const requestStore = useRequestStore()
+const semesterStore = useSemesterStore()
 
 const request = ref(null)
+const semester = ref(null)
 const notFound = ref(false)
 const loading = ref(true)
 
@@ -34,10 +37,20 @@ const id = computed(() => route.params.id)
 const hasPendingIrregularity = computed(() =>
   request.value?.irregularities?.some(i => i.status === 'Pendente')
 )
+const hasAppealableIrregularity = computed(() =>
+  request.value?.irregularities?.some(
+    i => i.status === 'Não autorizado' && !i.appealUsed
+  )
+)
 
 onMounted(async () => {
   request.value = await requestStore.getById(id.value)
   notFound.value = !request.value
+
+  if (request.value?.semester) {
+    semester.value = await semesterStore.getByName(request.value.semester)
+  }
+
   loading.value = false
 })
 
@@ -80,6 +93,20 @@ const extractName = str => {
       <BaseAlert v-if="hasPendingIrregularity" variant="warning">
         Sua solicitação tem pendências a corrigir. Veja as observações abaixo
         e clique em "Editar" para ajustar e reenviar.
+      </BaseAlert>
+
+      <BaseAlert v-if="hasAppealableIrregularity" variant="danger">
+        Uma ou mais irregularidades foram indeferidas. Se quiser, você pode
+        abrir um recurso (uma única vez por irregularidade) clicando em
+        "Editar".
+      </BaseAlert>
+
+      <BaseAlert
+        v-if="request.status === 'Aguardando' && semester?.resultDate"
+        variant="info"
+      >
+        Ainda estamos analisando sua solicitação. Consulte novamente a
+        partir de <strong>{{ formatDate(semester.resultDate) }}</strong>.
       </BaseAlert>
 
       <BaseCard>
@@ -148,6 +175,16 @@ const extractName = str => {
               <strong>Observação da coordenação:</strong>
               {{ irr.coordinatorNote }}
             </p>
+            <p v-if="irr.appeal" class="text-sm text-gray-600 mt-2">
+              <strong>Seu recurso:</strong> {{ irr.appeal }}
+            </p>
+            <p
+              v-if="irr.status === 'Não autorizado' && !irr.appealUsed"
+              class="text-sm text-primary-700 mt-2"
+            >
+              Você pode abrir um recurso para esta irregularidade clicando
+              em "Editar".
+            </p>
           </div>
         </div>
       </BaseCard>
@@ -168,14 +205,6 @@ const extractName = str => {
           <span class="text-sm font-normal">Coordenador(a): </span
           >{{ extractName(request.coordinator) }}
         </p>
-        <p
-          class="text-primary-800 font-normal whitespace-pre-wrap text-sm"
-          v-if="request?.sentAt"
-        >
-          <span class="text-sm font-normal">E-mail enviado em: </span>
-          {{ formatDateLong(request.sentAt) }}
-        </p>
-
         <p
           v-if="!request.opinion"
           class="text-gray-700 whitespace-pre-wrap text-sm"

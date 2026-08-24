@@ -7,6 +7,7 @@ import AppLayout from '@/components/layouts/AppLayout.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
+import BaseAlert from '@/components/ui/BaseAlert.vue'
 import AppLoader from '@/components/ui/AppLoader.vue'
 
 import {
@@ -29,6 +30,10 @@ const notFound = ref(false)
 const loading = ref(true)
 
 const id = computed(() => route.params.id)
+
+const hasPendingIrregularity = computed(() =>
+  request.value?.irregularities?.some(i => i.status === 'Pendente')
+)
 
 onMounted(async () => {
   request.value = await requestStore.getById(id.value)
@@ -72,7 +77,7 @@ const extractName = str => {
     </BaseCard>
 
     <div v-else class="w-full max-w-2xl mx-auto space-y-6">
-      <BaseAlert v-if="request.status === 'Pendência'" variant="warning">
+      <BaseAlert v-if="hasPendingIrregularity" variant="warning">
         Sua solicitação tem pendências a corrigir. Veja as observações abaixo
         e clique em "Editar" para ajustar e reenviar.
       </BaseAlert>
@@ -131,13 +136,13 @@ const extractName = str => {
               <span class="font-medium">{{ irr.name }}</span>
               <BaseBadge
                 v-if="request.status !== 'Aguardando'"
-                :variant="irr.authorized ? 'success' : 'danger'"
+                :variant="getStatusColor(irr.status)"
               >
-                {{ irr.authorized ? 'Autorizado' : 'Não autorizado' }}
+                {{ irr.status }}
               </BaseBadge>
             </div>
             <p
-              v-if="!irr.authorized && irr.coordinatorNote"
+              v-if="irr.status !== 'Autorizado' && irr.coordinatorNote"
               class="text-sm text-gray-600 mt-2"
             >
               <strong>Observação da coordenação:</strong>

@@ -8,19 +8,29 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 ## [Unreleased]
 
 ### Added
-- Novo status **Pendência**, separado de Indeferido: para quando a
-  coordenação identifica algo corrigível (não uma reprovação definitiva).
+- Cada irregularidade agora tem um status individual (`item.status`):
+  **Autorizado**, **Não autorizado** ou **Pendente** — antes era um simples
+  booleano `authorized`.
+- O status do PEDIDO deixa de ser escolhido manualmente e passa a ser
+  sempre calculado a partir do status de cada irregularidade
+  (`computeRequestStatus` em `src/helpers/index.js`):
+  - todas Autorizadas → **Deferido**
+  - todas Não autorizadas → **Indeferido**
+  - todas Pendentes → **Pendente**
+  - mix com ao menos 1 Autorizada → **Deferido-Parcial**
+  - mix de Não autorizada + Pendente, sem nenhuma Autorizada →
+    **Indeferido-Parcial**
 - Observação da coordenação por irregularidade (`coordinatorNote`), visível
   para o aluno tanto na consulta de status quanto na tela de edição.
-- Pedidos com status Pendência voltam a ficar editáveis para o aluno; ao
-  reenviar, o status retorna automaticamente para "Aguardando" (nova fila
-  de análise).
+- Pedidos com ao menos uma irregularidade "Pendente" voltam a ficar
+  editáveis para o aluno; ao reenviar, o status do pedido retorna
+  automaticamente para "Aguardando" (nova fila de análise).
 - Botão "Enviar E-mail ao Aluno" na análise do coordenador, reativando o
-  envio via EmailJS (existia no código, mas estava todo comentado) — agora
-  é uma ação manual e separada de "Salvar Parecer".
-- Campo "Status final do pedido" na análise: continua sugerido
-  automaticamente a partir das irregularidades marcadas, mas a coordenação
-  pode sobrescrever manualmente (ex.: escolher Pendência).
+  envio via EmailJS (existia no código, mas estava todo comentado).
+- **E-mail automático** ao salvar o parecer sempre que o status calculado
+  do pedido não for "Deferido" (ou seja, qualquer caso com pendência ou
+  indeferimento, total ou parcial). Aprovação total não dispara e-mail
+  automático, mas pode ser enviada manualmente pelo mesmo botão.
 
 ### Changed
 - Substituído o upload de arquivos (Firebase Storage) por um campo de link do Google Drive (`driveLink`) para o aluno anexar os documentos.

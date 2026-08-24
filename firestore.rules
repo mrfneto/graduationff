@@ -74,22 +74,34 @@ service cloud.firestore {
 
       // Atualização:
       // - secretaria/coordenação: acesso total (parecer, status, SIGA etc).
-      // - o próprio aluno (sem login): enquanto o pedido está "Aguardando"
-      //   OU "Pendência" (a coordenação apontou algo corrigível — ver
-      //   src/views/RequestDetailsView.vue). Em ambos os casos o pedido
+      // - o próprio aluno (sem login): enquanto o pedido não estiver com
+      //   decisão 100% final (Deferido ou Indeferido). Isso cobre
+      //   "Aguardando" e também os status que podem conter irregularidades
+      //   ainda "Pendente" (Pendente, Deferido-Parcial, Indeferido-Parcial
+      //   — ver computeRequestStatus em src/helpers/index.js). O pedido
       //   sai da edição do aluno sempre como "Aguardando" (volta pra fila
       //   de análise), e ele não pode alterar os campos de decisão da
       //   coordenação, o código de acesso ou o semestre.
       //
-      // OBS: por limitação do Firestore Rules, não validamos aqui o
-      // conteúdo interno de cada item da lista "irregularities" (ex.:
-      // impedir que o aluno altere authorized/coordinatorNote de um item
-      // existente) — isso não é feito na UI, mas um cliente malicioso
-      // poderia manipular a requisição diretamente. Se isso for uma
-      // preocupação real, considere mover a decisão final para uma Cloud
-      // Function em vez de escrita direta do cliente.
+      // OBS 1: a UI (src/views/RequestFormView.vue) só permite editar de
+      // fato quando existe uma irregularidade especificamente "Pendente",
+      // uma checagem mais fina do que dá pra expressar aqui — o Firestore
+      // Rules não tem como iterar a lista "irregularities" e inspecionar
+      // um campo de cada item. Ou seja, esta regra é intencionalmente um
+      // pouco mais permissiva que a UI (ex.: tecnicamente permite editar
+      // um Deferido-Parcial cuja "parcialidade" veio só de um item
+      // Não-autorizado, sem nenhum Pendente) — não é uma falha de
+      // segurança, só uma simplificação sem exposição de dados de terceiros.
+      //
+      // OBS 2: também não validamos aqui o conteúdo interno de cada item
+      // da lista "irregularities" (ex.: impedir que o aluno altere
+      // status/coordinatorNote de um item existente) — isso não é feito
+      // pela UI, mas um cliente malicioso poderia manipular a requisição
+      // diretamente. Se isso for uma preocupação real, considere mover a
+      // decisão final para uma Cloud Function em vez de escrita direta do
+      // cliente.
       allow update: if isStaff() || (
-        resource.data.status in ['Aguardando', 'Pendência'] &&
+        !(resource.data.status in ['Deferido', 'Indeferido']) &&
         request.resource.data.status == 'Aguardando' &&
         request.resource.data.access_code == resource.data.access_code &&
         request.resource.data.semester == resource.data.semester &&

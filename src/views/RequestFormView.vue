@@ -58,12 +58,19 @@ const state = reactive({
 
 // Computeds
 const hasActiveSemester = computed(() => !!semesterStore.activeSemester)
-// "Pendência" também é editável: a coordenação identificou algo corrigível
-// e o aluno pode ajustar e reenviar pelo próprio sistema.
-const canEdit = computed(() =>
-  ['Aguardando', 'Pendência'].includes(form.value.status)
+// Reabre a edição sempre que existir ao menos uma irregularidade marcada
+// como "Pendente" pela coordenação — independente do status agregado do
+// pedido (que pode ser Pendente, Deferido-Parcial ou Indeferido-Parcial,
+// dependendo da combinação — ver computeRequestStatus em helpers/index.js).
+const hasPendingIrregularity = computed(() =>
+  form.value.irregularities.some(i => i.status === 'Pendente')
 )
-const isPending = computed(() => form.value.status === 'Pendência')
+const canEdit = computed(
+  () => form.value.status === 'Aguardando' || hasPendingIrregularity.value
+)
+const isPending = computed(
+  () => form.value.status !== 'Aguardando' && hasPendingIrregularity.value
+)
 
 // Carrega dados na montagem
 onMounted(async () => {
@@ -108,8 +115,9 @@ const handleSubmit = async () => {
 
     if (!id) {
       form.value.semester = semesterStore.activeSemester?.name || ''
-    } else if (form.value.status === 'Pendência') {
-      // Aluno corrigiu uma pendência: volta pra fila de análise.
+    } else if (form.value.status !== 'Aguardando') {
+      // Aluno corrigiu uma pendência: volta pra fila de análise. (Só chega
+      // aqui se canEdit era true, ou seja, havia algo Pendente.)
       form.value.status = 'Aguardando'
     }
 
@@ -177,7 +185,7 @@ const handleDelete = async () => {
         <ul class="list-disc ml-5 space-y-1">
           <li
             v-for="(irr, index) in form.irregularities.filter(
-              i => !i.authorized && i.coordinatorNote
+              i => i.status === 'Pendente' && i.coordinatorNote
             )"
             :key="index"
           >

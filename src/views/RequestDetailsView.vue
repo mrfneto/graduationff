@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRequestStore } from '@/stores/request'
 import { useCoordinatorStore } from '@/stores/coordinator'
@@ -8,7 +8,8 @@ import {
   getStatusColor,
   formatTimestamp,
   formatDateLong,
-  finalStatusOptions
+  irregularityStatusOptions,
+  computeRequestStatus
 } from '@/helpers'
 
 //
@@ -40,70 +41,46 @@ const coordinatorOptions = computed(() => {
   )
 })
 
-// 🧮 Status sugerido automaticamente a partir das irregularidades marcadas
-// como autorizadas/não autorizadas — serve de ponto de partida, mas a
-// coordenação pode sobrescrever manualmente (ex.: escolher "Pendência" em
-// vez de "Indeferido"/"Deferido-Parcial" quando é algo corrigível).
-const computeAutoStatus = () => {
-  const total = request.value.irregularities.length
-  const authorizeds = request.value.irregularities.filter(
-    i => i.authorized
-  ).length
-
-  return authorizeds === total
-    ? 'Deferido'
-    : authorizeds > 0
-    ? 'Deferido-Parcial'
-    : 'Indeferido'
-}
-
-const finalStatus = ref('Indeferido')
-const statusManuallySet = ref(false)
-
-// Enquanto a coordenação não mexer manualmente no campo de status, ele
-// acompanha o cálculo automático conforme as irregularidades são marcadas.
-watch(
-  () => request.value?.irregularities.map(i => i.authorized),
-  () => {
-    if (request.value && !statusManuallySet.value) {
-      finalStatus.value = computeAutoStatus()
-    }
-  },
-  { deep: true }
+// 🧮 O status do pedido nunca é escolhido manualmente — é sempre calculado
+// a partir do status de cada irregularidade (ver computeRequestStatus em
+// helpers/index.js). A coordenação expressa a decisão marcando cada item
+// individualmente como Autorizado / Não autorizado / Pendente.
+const previewStatus = computed(() =>
+  request.value ? computeRequestStatus(request.value.irregularities) : null
 )
-
-const handleStatusOverride = () => {
-  statusManuallySet.value = true
-}
-
-const resetStatusSuggestion = () => {
-  statusManuallySet.value = false
-  finalStatus.value = computeAutoStatus()
-}
 
 onMounted(async () => {
   await coordinatorStore.get([{ field: 'active', value: true }])
   const result = await requestStore.getById(id.value)
   request.value = result
   loading.value = false
-
-  if (request.value && request.value.status !== 'Aguardando') {
-    // Pedido já analisado antes: mantém o status decidido como ponto de
-    // partida do campo (a coordenação pode ajustar e salvar de novo).
-    finalStatus.value = request.value.status
-    statusManuallySet.value = true
-  } else if (request.value) {
-    finalStatus.value = computeAutoStatus()
-  }
 })
 
 const handleSubmit = async () => {
   saving.value = true
   try {
-    request.value.status = finalStatus.value
+    request.value.status = previewStatus.value
 
     await requestStore.save(request.value, id.value)
-    await sweet.info('Parecer salvo com sucesso.')
+
+    // 📧 E-mail automático sempre que houver pendência ou indeferimento
+    // (ou seja, qualquer status que não seja "Deferido"). Aprovação total
+    // não dispara e-mail automático, mas pode ser enviada manualmente.
+    if (request.value.status !== 'Deferido') {
+      try {
+        await sendEmail(request.value)
+        request.value.sentAt = new Date().toISOString()
+        await requestStore.save(request.value, id.value)
+        await sweet.success('Parecer salvo e e-mail enviado ao aluno automaticamente.')
+      } catch (emailError) {
+        console.error('Erro ao enviar e-mail automático:', emailError)
+        await sweet.info(
+          'Parecer salvo, mas não foi possível enviar o e-mail automaticamente. Use o botão "Enviar E-mail ao Aluno" para tentar novamente.'
+        )
+      }
+    } else {
+      await sweet.info('Parecer salvo com sucesso.')
+    }
 
     router.push({ name: 'requests' })
   } catch (error) {
@@ -114,8 +91,8 @@ const handleSubmit = async () => {
   }
 }
 
-// 📧 Envio manual do e-mail de notificação ao aluno — separado do "Salvar
-// Parecer" para a coordenação poder revisar a decisão antes de notificar.
+// 📧 Envio manual do e-mail de notificação ao aluno — para reenviar, ou
+// para notificar manualmente em caso de aprovação total (Deferido).
 const handleSendEmail = async () => {
   sendingEmail.value = true
   try {
@@ -189,25 +166,24 @@ const handleSendEmail = async () => {
               <div class="grid md:grid-cols-2 md:gap-4 items-center mb-1">
                 <span class="font-medium">{{ item.name }}</span>
 
-                <div class="space-x-4 flex items-center">
-                  <label class="flex items-center space-x-2 cursor-pointer">
+                <div class="space-x-4 flex items-center flex-wrap">
+                  <label
+                    v-for="option in irregularityStatusOptions"
+                    :key="option"
+                    class="flex items-center space-x-2 cursor-pointer"
+                  >
                     <input
                       type="radio"
-                      v-model="item.authorized"
-                      :value="true"
-                      class="form-radio h-4 w-4 text-green-600 outline-none"
+                      v-model="item.status"
+                      :value="option"
+                      class="form-radio h-4 w-4 outline-none"
+                      :class="{
+                        'text-green-600': option === 'Autorizado',
+                        'text-red-600': option === 'Não autorizado',
+                        'text-yellow-600': option === 'Pendente'
+                      }"
                     />
-                    <span class="text-sm text-gray-700">Autorizada</span>
-                  </label>
-
-                  <label class="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      v-model="item.authorized"
-                      :value="false"
-                      class="form-radio h-4 w-4 text-red-600 outline-none"
-                    />
-                    <span class="text-sm text-gray-700">Não autorizada</span>
+                    <span class="text-sm text-gray-700">{{ option }}</span>
                   </label>
                 </div>
               </div>
@@ -217,7 +193,7 @@ const handleSendEmail = async () => {
                   {{ item.description }}
                 </p>
               </div>
-              <div class="mt-2" v-if="!item.authorized">
+              <div class="mt-2" v-if="item.status !== 'Autorizado'">
                 <label
                   :for="`coordinator-note-${index}`"
                   class="text-sm font-semibold block mb-1"
@@ -269,7 +245,7 @@ const handleSendEmail = async () => {
               label="Parecer do coordenador"
               placeholder="Informe o parecer aqui"
               required
-              hint="Em caso de pendência corrigível, use a observação em cada irregularidade acima e escolha o status 'Pendência' ao lado — o aluno poderá editar e reenviar a solicitação pelo próprio sistema."
+              hint="Em caso de pendência corrigível, marque a irregularidade como 'Pendente' e use a observação — o aluno poderá editar e reenviar a solicitação pelo próprio sistema."
             />
 
             <div>
@@ -284,26 +260,15 @@ const handleSendEmail = async () => {
               />
 
               <div class="mt-4">
-                <BaseInput
-                  id="finalStatus"
-                  type="select"
-                  v-model="finalStatus"
-                  @change="handleStatusOverride"
-                  :options="finalStatusOptions"
-                  label="Status final do pedido"
-                  required
-                />
-                <button
-                  v-if="statusManuallySet"
-                  type="button"
-                  class="text-xs text-primary-600 underline mt-1"
-                  @click="resetStatusSuggestion"
-                >
-                  Usar sugestão automática ({{ computeAutoStatus() }})
-                </button>
-                <p v-else class="text-xs text-gray-500 mt-1">
-                  Sugestão automática com base nas irregularidades marcadas.
-                  Você pode alterar, por exemplo para "Pendência".
+                <span class="text-sm font-medium text-gray-700 block mb-1">
+                  Status do pedido (calculado automaticamente)
+                </span>
+                <BaseBadge :variant="getStatusColor(previewStatus)">
+                  {{ previewStatus }}
+                </BaseBadge>
+                <p class="text-xs text-gray-500 mt-1">
+                  Calculado a partir do status marcado em cada irregularidade
+                  acima.
                 </p>
               </div>
 

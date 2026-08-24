@@ -26,34 +26,61 @@ export const formatDateLong = date => {
   return new Date(date).toLocaleDateString('pt-BR', options)
 }
 
-// 🎨 Opções de status para filtros e seleção
+// 🎨 Opções de status do PEDIDO, para filtros e seleção
 export const statusOptions = [
   'Deferido',
   'Indeferido',
   'Deferido-Parcial',
-  'Pendência',
+  'Indeferido-Parcial',
+  'Pendente',
   'Aguardando'
 ]
 
-// 🎨 Status finais que a coordenação pode escolher ao analisar um pedido
-// (não inclui "Aguardando", que é só o estado inicial)
-export const finalStatusOptions = [
-  'Deferido',
-  'Deferido-Parcial',
-  'Indeferido',
-  'Pendência'
+// 🎨 Opções de status de cada IRREGULARIDADE — escolhidas individualmente
+// pela coordenação. O status do pedido (acima) é sempre calculado a partir
+// destas, nunca escolhido manualmente (ver computeRequestStatus).
+export const irregularityStatusOptions = [
+  'Autorizado',
+  'Não autorizado',
+  'Pendente'
 ]
+
+// 🧮 Calcula o status do pedido a partir do status de cada irregularidade:
+// - todas Autorizadas          -> Deferido
+// - todas Não autorizadas      -> Indeferido
+// - todas Pendentes            -> Pendente
+// - mix com ao menos 1 Autorizada -> Deferido-Parcial
+// - mix de Não autorizada + Pendente, sem nenhuma Autorizada -> Indeferido-Parcial
+export const computeRequestStatus = irregularities => {
+  const total = irregularities.length
+  const authorized = irregularities.filter(
+    i => i.status === 'Autorizado'
+  ).length
+  const denied = irregularities.filter(
+    i => i.status === 'Não autorizado'
+  ).length
+  const pending = irregularities.filter(i => i.status === 'Pendente').length
+
+  if (authorized === total) return 'Deferido'
+  if (denied === total) return 'Indeferido'
+  if (pending === total) return 'Pendente'
+  if (authorized > 0) return 'Deferido-Parcial'
+  return 'Indeferido-Parcial'
+}
 
 // 🎨 Mapeia status para cores
 export const getStatusColor = status => {
   switch (status) {
     case 'Deferido':
+    case 'Autorizado':
       return 'success'
     case 'Indeferido':
+    case 'Indeferido-Parcial':
+    case 'Não autorizado':
       return 'danger'
     case 'Deferido-Parcial':
       return 'info'
-    case 'Pendência':
+    case 'Pendente':
       return 'warning'
     default:
       return 'default'
@@ -66,10 +93,8 @@ export const sendEmail = async request => {
 
   const irregularitiesSummary = request.irregularities
     .map(irregularity => {
-      const line = `- ${irregularity.name}: ${
-        irregularity.authorized ? 'Autorizada' : 'Não autorizada'
-      }`
-      return irregularity.authorized || !irregularity.coordinatorNote
+      const line = `- ${irregularity.name}: ${irregularity.status}`
+      return irregularity.status === 'Autorizado' || !irregularity.coordinatorNote
         ? line
         : `${line}\n  Observação da coordenação: ${irregularity.coordinatorNote}`
     })

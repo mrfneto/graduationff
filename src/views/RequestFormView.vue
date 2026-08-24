@@ -58,7 +58,12 @@ const state = reactive({
 
 // Computeds
 const hasActiveSemester = computed(() => !!semesterStore.activeSemester)
-const canEdit = computed(() => form.value.status === 'Aguardando')
+// "Pendência" também é editável: a coordenação identificou algo corrigível
+// e o aluno pode ajustar e reenviar pelo próprio sistema.
+const canEdit = computed(() =>
+  ['Aguardando', 'Pendência'].includes(form.value.status)
+)
+const isPending = computed(() => form.value.status === 'Pendência')
 
 // Carrega dados na montagem
 onMounted(async () => {
@@ -103,6 +108,9 @@ const handleSubmit = async () => {
 
     if (!id) {
       form.value.semester = semesterStore.activeSemester?.name || ''
+    } else if (form.value.status === 'Pendência') {
+      // Aluno corrigiu uma pendência: volta pra fila de análise.
+      form.value.status = 'Aguardando'
     }
 
     const access_code = await requestStore.save(form.value, id)
@@ -158,6 +166,26 @@ const handleDelete = async () => {
       coordenação.
     </BaseAlert>
     <BaseCard v-else class="w-full max-w-2xl mx-auto">
+      <BaseAlert v-if="isPending" variant="warning" class="mb-6">
+        <p class="font-semibold mb-2">
+          A coordenação identificou pendências neste pedido. Corrija os
+          pontos abaixo e reenvie.
+        </p>
+        <p v-if="form.opinion" class="mb-2 whitespace-pre-wrap">
+          {{ form.opinion }}
+        </p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li
+            v-for="(irr, index) in form.irregularities.filter(
+              i => !i.authorized && i.coordinatorNote
+            )"
+            :key="index"
+          >
+            <strong>{{ irr.name }}:</strong> {{ irr.coordinatorNote }}
+          </li>
+        </ul>
+      </BaseAlert>
+
       <div class="mb-8">
         <form @submit.prevent="handleSubmit">
           <!-- Dados pessoais -->

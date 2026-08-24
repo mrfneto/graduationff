@@ -72,6 +72,11 @@ const extractName = str => {
     </BaseCard>
 
     <div v-else class="w-full max-w-2xl mx-auto space-y-6">
+      <BaseAlert v-if="request.status === 'Pendência'" variant="warning">
+        Sua solicitação tem pendências a corrigir. Veja as observações abaixo
+        e clique em "Editar" para ajustar e reenviar.
+      </BaseAlert>
+
       <BaseCard>
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-bold">Status Geral</h2>
@@ -120,15 +125,24 @@ const extractName = str => {
           <div
             v-for="(irr, index) in request.irregularities"
             :key="index"
-            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            class="p-3 bg-gray-50 rounded-lg"
           >
-            <span class="font-medium">{{ irr.name }}</span>
-            <BaseBadge
-              v-if="request.status !== 'Aguardando'"
-              :variant="irr.authorized ? 'success' : 'danger'"
+            <div class="flex items-center justify-between">
+              <span class="font-medium">{{ irr.name }}</span>
+              <BaseBadge
+                v-if="request.status !== 'Aguardando'"
+                :variant="irr.authorized ? 'success' : 'danger'"
+              >
+                {{ irr.authorized ? 'Autorizado' : 'Não autorizado' }}
+              </BaseBadge>
+            </div>
+            <p
+              v-if="!irr.authorized && irr.coordinatorNote"
+              class="text-sm text-gray-600 mt-2"
             >
-              {{ irr.authorized ? 'Autorizado' : 'Não autorizado' }}
-            </BaseBadge>
+              <strong>Observação da coordenação:</strong>
+              {{ irr.coordinatorNote }}
+            </p>
           </div>
         </div>
       </BaseCard>

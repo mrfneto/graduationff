@@ -7,6 +7,21 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Added
+- Novo status **Pendência**, separado de Indeferido: para quando a
+  coordenação identifica algo corrigível (não uma reprovação definitiva).
+- Observação da coordenação por irregularidade (`coordinatorNote`), visível
+  para o aluno tanto na consulta de status quanto na tela de edição.
+- Pedidos com status Pendência voltam a ficar editáveis para o aluno; ao
+  reenviar, o status retorna automaticamente para "Aguardando" (nova fila
+  de análise).
+- Botão "Enviar E-mail ao Aluno" na análise do coordenador, reativando o
+  envio via EmailJS (existia no código, mas estava todo comentado) — agora
+  é uma ação manual e separada de "Salvar Parecer".
+- Campo "Status final do pedido" na análise: continua sugerido
+  automaticamente a partir das irregularidades marcadas, mas a coordenação
+  pode sobrescrever manualmente (ex.: escolher Pendência).
+
 ### Changed
 - Substituído o upload de arquivos (Firebase Storage) por um campo de link do Google Drive (`driveLink`) para o aluno anexar os documentos.
 - `RequestDetailsView` e `RequestResultView` agora exibem um link para os documentos no Drive em vez da lista de arquivos.

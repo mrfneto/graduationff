@@ -74,11 +74,22 @@ service cloud.firestore {
 
       // Atualização:
       // - secretaria/coordenação: acesso total (parecer, status, SIGA etc).
-      // - o próprio aluno (sem login): só enquanto o pedido ainda está
-      //   "Aguardando", e sem poder alterar os campos de decisão da
+      // - o próprio aluno (sem login): enquanto o pedido está "Aguardando"
+      //   OU "Pendência" (a coordenação apontou algo corrigível — ver
+      //   src/views/RequestDetailsView.vue). Em ambos os casos o pedido
+      //   sai da edição do aluno sempre como "Aguardando" (volta pra fila
+      //   de análise), e ele não pode alterar os campos de decisão da
       //   coordenação, o código de acesso ou o semestre.
+      //
+      // OBS: por limitação do Firestore Rules, não validamos aqui o
+      // conteúdo interno de cada item da lista "irregularities" (ex.:
+      // impedir que o aluno altere authorized/coordinatorNote de um item
+      // existente) — isso não é feito na UI, mas um cliente malicioso
+      // poderia manipular a requisição diretamente. Se isso for uma
+      // preocupação real, considere mover a decisão final para uma Cloud
+      // Function em vez de escrita direta do cliente.
       allow update: if isStaff() || (
-        resource.data.status == 'Aguardando' &&
+        resource.data.status in ['Aguardando', 'Pendência'] &&
         request.resource.data.status == 'Aguardando' &&
         request.resource.data.access_code == resource.data.access_code &&
         request.resource.data.semester == resource.data.semester &&

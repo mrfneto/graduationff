@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRequestStore } from '@/stores/request'
 import { useCoordinatorStore } from '@/stores/coordinator'
@@ -7,7 +7,8 @@ import {
   sendEmail,
   getStatusColor,
   formatTimestamp,
-  formatDateLong
+  formatDateLong,
+  finalStatusOptions
 } from '@/helpers'
 
 //
@@ -29,6 +30,7 @@ const coordinatorStore = useCoordinatorStore()
 const request = ref(null)
 const loading = ref(true)
 const saving = ref(false)
+const sendingEmail = ref(false)
 
 const id = computed(() => route.params.id || null)
 
@@ -38,54 +40,69 @@ const coordinatorOptions = computed(() => {
   )
 })
 
+// 🧮 Status sugerido automaticamente a partir das irregularidades marcadas
+// como autorizadas/não autorizadas — serve de ponto de partida, mas a
+// coordenação pode sobrescrever manualmente (ex.: escolher "Pendência" em
+// vez de "Indeferido"/"Deferido-Parcial" quando é algo corrigível).
+const computeAutoStatus = () => {
+  const total = request.value.irregularities.length
+  const authorizeds = request.value.irregularities.filter(
+    i => i.authorized
+  ).length
+
+  return authorizeds === total
+    ? 'Deferido'
+    : authorizeds > 0
+    ? 'Deferido-Parcial'
+    : 'Indeferido'
+}
+
+const finalStatus = ref('Indeferido')
+const statusManuallySet = ref(false)
+
+// Enquanto a coordenação não mexer manualmente no campo de status, ele
+// acompanha o cálculo automático conforme as irregularidades são marcadas.
+watch(
+  () => request.value?.irregularities.map(i => i.authorized),
+  () => {
+    if (request.value && !statusManuallySet.value) {
+      finalStatus.value = computeAutoStatus()
+    }
+  },
+  { deep: true }
+)
+
+const handleStatusOverride = () => {
+  statusManuallySet.value = true
+}
+
+const resetStatusSuggestion = () => {
+  statusManuallySet.value = false
+  finalStatus.value = computeAutoStatus()
+}
+
 onMounted(async () => {
   await coordinatorStore.get([{ field: 'active', value: true }])
   const result = await requestStore.getById(id.value)
   request.value = result
   loading.value = false
+
+  if (request.value && request.value.status !== 'Aguardando') {
+    // Pedido já analisado antes: mantém o status decidido como ponto de
+    // partida do campo (a coordenação pode ajustar e salvar de novo).
+    finalStatus.value = request.value.status
+    statusManuallySet.value = true
+  } else if (request.value) {
+    finalStatus.value = computeAutoStatus()
+  }
 })
 
 const handleSubmit = async () => {
   saving.value = true
   try {
-    const total = request.value.irregularities.length
-    const authorizeds = request.value.irregularities.filter(
-      i => i.authorized
-    ).length
-
-    request.value.status =
-      authorizeds === total
-        ? 'Deferido'
-        : authorizeds > 0
-        ? 'Deferido-Parcial'
-        : 'Indeferido'
+    request.value.status = finalStatus.value
 
     await requestStore.save(request.value, id.value)
-
-    // if (
-    //   request.value.status === 'Deferido-Parcial' ||
-    //   request.value.status === 'Indeferido'
-    // ) {
-    //   await sendEmail(request.value)
-    //   request.value.sentAt = new Date().toISOString()
-    //   await requestStore.save(request.value, id.value)
-    //   await sweet.success('Parecer salvo e e-mail enviado com sucesso!')
-    // } else {
-    //   await sweet.info('Parecer salvo com sucesso.')
-    // }
-
-    // const confirmed = await sweet.confirm(
-    //   'Deseja enviar e-mail com o parecer para o aluno?',
-    //   'Você pode enviar agora ou apenas salvar o parecer e enviar depois clicando em salvar.'
-    // )
-    // if (confirmed) {
-    //   await sendEmail(request.value)
-    //   request.value.sentAt = new Date().toISOString()
-    //   await requestStore.save(request.value, id.value)
-    //   await sweet.success('Parecer salvo e e-mail enviado com sucesso!')
-    // } else {
-    //   await sweet.info('Parecer salvo com sucesso.')
-    // }
     await sweet.info('Parecer salvo com sucesso.')
 
     router.push({ name: 'requests' })
@@ -94,6 +111,23 @@ const handleSubmit = async () => {
     await sweet.error('Ocorreu um erro ao salvar.')
   } finally {
     saving.value = false
+  }
+}
+
+// 📧 Envio manual do e-mail de notificação ao aluno — separado do "Salvar
+// Parecer" para a coordenação poder revisar a decisão antes de notificar.
+const handleSendEmail = async () => {
+  sendingEmail.value = true
+  try {
+    await sendEmail(request.value)
+    request.value.sentAt = new Date().toISOString()
+    await requestStore.save(request.value, id.value)
+    await sweet.success('E-mail enviado ao aluno com sucesso!')
+  } catch (error) {
+    console.error('Erro ao enviar e-mail:', error)
+    await sweet.error('Não foi possível enviar o e-mail. Tente novamente.')
+  } finally {
+    sendingEmail.value = false
   }
 }
 </script>
@@ -183,6 +217,23 @@ const handleSubmit = async () => {
                   {{ item.description }}
                 </p>
               </div>
+              <div class="mt-2" v-if="!item.authorized">
+                <label
+                  :for="`coordinator-note-${index}`"
+                  class="text-sm font-semibold block mb-1"
+                >
+                  Observação da coordenação
+                  <span class="font-normal text-gray-500">
+                    (visível para o aluno)
+                  </span>
+                </label>
+                <textarea
+                  :id="`coordinator-note-${index}`"
+                  v-model="item.coordinatorNote"
+                  placeholder="Explique o que precisa ser corrigido ou complementado nesta irregularidade..."
+                  class="w-full border border-gray-300 rounded-md p-2 text-sm min-h-[70px]"
+                ></textarea>
+              </div>
             </div>
 
             <!-- Documentos do aluno -->
@@ -218,7 +269,7 @@ const handleSubmit = async () => {
               label="Parecer do coordenador"
               placeholder="Informe o parecer aqui"
               required
-              hint="Em caso de **pendências**, marque a opção *não autorizado* e solicite que o aluno envie e-mail para a coordanção com os documentos ou informações necessárias."
+              hint="Em caso de pendência corrigível, use a observação em cada irregularidade acima e escolha o status 'Pendência' ao lado — o aluno poderá editar e reenviar a solicitação pelo próprio sistema."
             />
 
             <div>
@@ -231,9 +282,34 @@ const handleSubmit = async () => {
                 placeholder="Nome do coordenador"
                 required
               />
+
+              <div class="mt-4">
+                <BaseInput
+                  id="finalStatus"
+                  type="select"
+                  v-model="finalStatus"
+                  @change="handleStatusOverride"
+                  :options="finalStatusOptions"
+                  label="Status final do pedido"
+                  required
+                />
+                <button
+                  v-if="statusManuallySet"
+                  type="button"
+                  class="text-xs text-primary-600 underline mt-1"
+                  @click="resetStatusSuggestion"
+                >
+                  Usar sugestão automática ({{ computeAutoStatus() }})
+                </button>
+                <p v-else class="text-xs text-gray-500 mt-1">
+                  Sugestão automática com base nas irregularidades marcadas.
+                  Você pode alterar, por exemplo para "Pendência".
+                </p>
+              </div>
+
               <div>
                 <label
-                  class="inline-flex items-center space-x-2 cursor-pointer mt-8"
+                  class="inline-flex items-center space-x-2 cursor-pointer mt-4"
                 >
                   <input
                     type="checkbox"
@@ -253,9 +329,23 @@ const handleSubmit = async () => {
             </div>
           </div>
 
-          <div class="flex items-center space-x-4">
-            <BaseButton :loading="saving" class="w-full">
+          <div class="flex items-center flex-wrap gap-4">
+            <BaseButton :loading="saving" class="flex-1">
               Salvar Parecer
+            </BaseButton>
+            <BaseButton
+              type="button"
+              variant="secondary"
+              :loading="sendingEmail"
+              :disabled="request.status === 'Aguardando'"
+              :title="
+                request.status === 'Aguardando'
+                  ? 'Salve o parecer antes de enviar o e-mail'
+                  : 'Enviar e-mail com o parecer para o aluno'
+              "
+              @click="handleSendEmail"
+            >
+              Enviar E-mail ao Aluno
             </BaseButton>
             <BaseButton
               :to="{ name: 'requests' }"

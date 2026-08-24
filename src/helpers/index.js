@@ -31,7 +31,17 @@ export const statusOptions = [
   'Deferido',
   'Indeferido',
   'Deferido-Parcial',
+  'Pendência',
   'Aguardando'
+]
+
+// 🎨 Status finais que a coordenação pode escolher ao analisar um pedido
+// (não inclui "Aguardando", que é só o estado inicial)
+export const finalStatusOptions = [
+  'Deferido',
+  'Deferido-Parcial',
+  'Indeferido',
+  'Pendência'
 ]
 
 // 🎨 Mapeia status para cores
@@ -43,6 +53,8 @@ export const getStatusColor = status => {
       return 'danger'
     case 'Deferido-Parcial':
       return 'info'
+    case 'Pendência':
+      return 'warning'
     default:
       return 'default'
   }
@@ -53,12 +65,14 @@ export const sendEmail = async request => {
   const siteUrl = import.meta.env.VITE_SITE_URL
 
   const irregularitiesSummary = request.irregularities
-    .map(
-      irregularity =>
-        `- ${irregularity.name}: ${
-          irregularity.authorized ? 'Autorizada' : 'Não autorizada'
-        }`
-    )
+    .map(irregularity => {
+      const line = `- ${irregularity.name}: ${
+        irregularity.authorized ? 'Autorizada' : 'Não autorizada'
+      }`
+      return irregularity.authorized || !irregularity.coordinatorNote
+        ? line
+        : `${line}\n  Observação da coordenação: ${irregularity.coordinatorNote}`
+    })
     .join('\n')
 
   try {

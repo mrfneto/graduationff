@@ -175,7 +175,7 @@ const extractName = str => {
           {{
             request.siga
               ? 'Autorização efetivada no siga. Confira a sua CRID'
-              : 'Autorização ainda não efetivada no SIGA. o Prazo para efetivar é de 15 dia. Passado este prazo, entre em contato com a secretaria'
+              : 'Autorização ainda não efetivada no SIGA.'
           }}
         </p>
       </BaseCard>

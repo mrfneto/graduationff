@@ -11,17 +11,30 @@ import {
   getDocs,
   getDoc,
   orderBy,
+  runTransaction,
   serverTimestamp,
   where
 } from 'firebase/firestore'
 import { nanoid } from '../helpers'
-import { useSemesterStore } from './semester'
 
 export const useRequestStore = defineStore('request', () => {
   const requests = ref([])
   const requestsCache = ref({})
 
   const collectionName = import.meta.env.VITE_FIREBASE_COLLECTION_REQUESTS
+  const lockCollectionName = import.meta.env
+    .VITE_FIREBASE_COLLECTION_REQUEST_LOCKS
+
+  // 🔐 ID determinístico do "cadeado" semestre+matrícula (nunca uma query),
+  // pra permitir checar duplicidade publicamente sem precisar de list().
+  const buildLockId = (semester, register) => {
+    const clean = str =>
+      (str || '')
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+    return `${clean(semester)}_${clean(register)}`
+  }
 
   const filters = ref({
     name: '',
@@ -84,6 +97,20 @@ export const useRequestStore = defineStore('request', () => {
     }
   }
 
+  // 🔍 Verifica se já existe solicitação para esta matrícula neste
+  // semestre (checagem rápida/consultiva antes de submeter — a garantia
+  // real contra corrida/duplicidade é a transação dentro de save()).
+  const checkDuplicate = async (register, semester) => {
+    try {
+      const lockId = buildLockId(semester, register)
+      const snap = await getDoc(doc(db, lockCollectionName, lockId))
+      return snap.exists()
+    } catch (error) {
+      console.error('[RequestStore] Erro ao verificar duplicidade:', error)
+      return false
+    }
+  }
+
   // 🔐 Gera um código de acesso garantidamente livre (ele também é o ID do
   // documento, então checamos colisão antes de gravar — extremamente raro,
   // mas silenciosamente sobrescrever outra solicitação seria grave).
@@ -123,7 +150,31 @@ export const useRequestStore = defineStore('request', () => {
       const accessCode = await generateUniqueAccessCode()
       payload.access_code = accessCode
       payload.created_at = serverTimestamp()
-      await setDoc(doc(db, collectionName, accessCode), payload)
+
+      const lockId = buildLockId(payload.semester, payload.register)
+      const lockRef = doc(db, lockCollectionName, lockId)
+      const requestRef = doc(db, collectionName, accessCode)
+
+      // Transação: cria o cadeado e o pedido juntos, atomicamente. Se já
+      // existir um cadeado pra essa matrícula+semestre (mesmo que tenha
+      // sido criado no instante entre o checkDuplicate() e este ponto),
+      // a transação falha e nada é gravado.
+      await runTransaction(db, async tx => {
+        const lockSnap = await tx.get(lockRef)
+        if (lockSnap.exists()) {
+          throw new Error(
+            'Já existe uma solicitação registrada para esta matrícula neste semestre.'
+          )
+        }
+
+        tx.set(lockRef, {
+          semester: payload.semester,
+          register: payload.register,
+          access_code: accessCode,
+          created_at: serverTimestamp()
+        })
+        tx.set(requestRef, payload)
+      })
 
       return accessCode
     } catch (error) {
@@ -147,6 +198,7 @@ export const useRequestStore = defineStore('request', () => {
     hasRequests,
     get,
     getById,
+    checkDuplicate,
     save,
     remove
   }

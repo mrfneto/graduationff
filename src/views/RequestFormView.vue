@@ -136,6 +136,17 @@ const handleSubmit = async () => {
       }
 
       form.value.semester = semesterStore.activeSemester?.name || ''
+
+      const isDuplicate = await requestStore.checkDuplicate(
+        form.value.register,
+        form.value.semester
+      )
+      if (isDuplicate) {
+        errors.value.register =
+          'Esta matrícula já possui uma solicitação registrada neste semestre.'
+        state.saving = false
+        return
+      }
     } else if (isRestrictedEdit.value) {
       // Transforma recursos preenchidos: uma irregularidade "Não
       // autorizada" com texto de recurso novo volta a ficar "Pendente"
@@ -156,7 +167,13 @@ const handleSubmit = async () => {
     }
 
     const access_code = await requestStore.save(form.value, id)
-    router.push({ name: 'request-success', params: { code: access_code } })
+    router.push({
+      name: 'request-success',
+      params: { code: access_code },
+      // Só baixa o comprovante automaticamente em pedidos novos, não em
+      // reenvios de pendência/recurso.
+      query: id ? {} : { new: '1' }
+    })
   } catch (err) {
     state.error = err.message || 'Erro ao salvar'
   } finally {
@@ -279,6 +296,7 @@ const handleDelete = async () => {
                   id="register"
                   v-model="form.register"
                   label="Matrícula"
+                  :error="errors.register"
                   required
                 />
                 <BaseInput

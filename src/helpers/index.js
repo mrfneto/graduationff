@@ -124,7 +124,7 @@ export const generatePDF = request => {
 
   currentY += 8
   doc.text(
-    'Link para consulta: https://gradff-ufrj.web.app/',
+    `Link para consulta: ${import.meta.env.VITE_SITE_URL || 'https://gradff-ufrj.web.app/'}`,
     marginLeft,
     currentY
   )
@@ -135,6 +135,15 @@ export const generatePDF = request => {
     marginLeft,
     currentY
   )
+
+  if (request.resultDate) {
+    currentY += 8
+    doc.text(
+      `Consulte o parecer a partir de: ${formatDate(request.resultDate)}`,
+      marginLeft,
+      currentY
+    )
+  }
 
   // --- Solicitante ---
   currentY += 15

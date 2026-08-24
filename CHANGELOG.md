@@ -7,6 +7,20 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Added (parte 2)
+- Comprovante em PDF é **baixado automaticamente** ao criar um pedido novo
+  (não em reenvios de pendência/recurso, que passam pela mesma tela).
+- Checagem de duplicidade: não é possível criar uma segunda solicitação
+  para a mesma matrícula no mesmo semestre. Implementado com uma coleção
+  `requestLocks` (ID determinístico semestre+matrícula, nunca uma query —
+  mesmo princípio do access_code) e uma transação do Firestore que cria o
+  cadeado e o pedido atomicamente, evitando duplicidade mesmo em caso de
+  corrida (dois envios simultâneos).
+- Comprovante em PDF agora mostra "Consulte o parecer a partir de"
+  quando o semestre tem `resultDate` definido.
+- Corrigido link fixo (domínio antigo `gradff-ufrj.web.app`) no
+  comprovante em PDF — agora usa `VITE_SITE_URL` do `.env`.
+
 ### Fixed
 - `BaseAlert.vue` usava `<span>` (inline) como elemento raiz — ao colocar
   parágrafos/listas dentro (ex.: alertas de pendência/recurso), o HTML

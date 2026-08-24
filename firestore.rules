@@ -5,9 +5,10 @@ rules_version = '2';
 // emulador). Teste com o Firestore Emulator antes de confiar em produção:
 // https://firebase.google.com/docs/rules/emulator-setup
 //
-// Nomes de coleção usados abaixo: "semesters", "coordinators", "requests".
-// Se você usar outros nomes nas variáveis VITE_FIREBASE_COLLECTION_* do
-// .env, ajuste os caminhos "match /..." correspondentes aqui também.
+// Nomes de coleção usados abaixo: "semesters", "coordinators", "requests",
+// "requestLocks". Se você usar outros nomes nas variáveis
+// VITE_FIREBASE_COLLECTION_* do .env, ajuste os caminhos "match /..."
+// correspondentes aqui também.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -35,6 +36,26 @@ service cloud.firestore {
     // -----------------------------------------------------------------
     match /coordinators/{coordinatorId} {
       allow read, write: if isStaff();
+    }
+
+    // -----------------------------------------------------------------
+    // requestLocks
+    // Um "cadeado" por combinação semestre+matrícula, usado só para
+    // impedir duas solicitações da mesma matrícula no mesmo semestre. O ID
+    // do documento é derivado de semestre+matrícula (ver buildLockId em
+    // src/stores/request.js) — nunca um dado sensível sozinho, e a consulta
+    // pública só confirma existência (get), nunca lista (list). O conteúdo
+    // do documento não expõe dados pessoais além do que o próprio cliente
+    // já enviou (register/semester), então não há necessidade de proteger
+    // esses campos com mais rigor do que isso.
+    // -----------------------------------------------------------------
+    match /requestLocks/{lockId} {
+      allow get: if true;
+      allow list: if isStaff();
+      allow create: if
+        request.resource.data.semester is string && request.resource.data.semester.size() > 0 &&
+        request.resource.data.register is string && request.resource.data.register.size() > 0;
+      allow update, delete: if isStaff();
     }
 
     // -----------------------------------------------------------------

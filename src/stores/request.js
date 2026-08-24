@@ -5,9 +5,9 @@ import {
   collection,
   query,
   updateDoc,
+  setDoc,
   doc,
   deleteDoc,
-  addDoc,
   getDocs,
   getDoc,
   orderBy,
@@ -84,7 +84,24 @@ export const useRequestStore = defineStore('request', () => {
     }
   }
 
+  // 🔐 Gera um código de acesso garantidamente livre (ele também é o ID do
+  // documento, então checamos colisão antes de gravar — extremamente raro,
+  // mas silenciosamente sobrescrever outra solicitação seria grave).
+  const generateUniqueAccessCode = async () => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = nanoid()
+      const existing = await getDoc(doc(db, collectionName, code))
+      if (!existing.exists()) return code
+    }
+    throw new Error(
+      'Não foi possível gerar um código de acesso único. Tente novamente.'
+    )
+  }
+
   // 💾 Cria ou atualiza um registro
+  // OBS: o ID do documento é o próprio access_code — isso permite que a
+  // consulta pública de status use um get() direto (getById) em vez de uma
+  // query com "list", que não pode ser restringida por regra do Firestore.
   const save = async (request, id = null) => {
     const payload = { ...request, update_at: serverTimestamp() }
 
@@ -99,15 +116,19 @@ export const useRequestStore = defineStore('request', () => {
         if (index !== -1) {
           requests.value[index] = { ...requests.value[index], ...payload }
         }
-      } else {
-        payload.access_code = `${nanoid()}/${payload.semester}`
-        payload.created_at = serverTimestamp()
-        await addDoc(collection(db, collectionName), payload)
+
+        return payload.access_code
       }
 
-      return payload.access_code
+      const accessCode = await generateUniqueAccessCode()
+      payload.access_code = accessCode
+      payload.created_at = serverTimestamp()
+      await setDoc(doc(db, collectionName, accessCode), payload)
+
+      return accessCode
     } catch (error) {
       console.error('[RequestStore] Erro ao salvar registro:', error)
+      throw error
     }
   }
 

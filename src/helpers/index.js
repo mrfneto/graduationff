@@ -3,7 +3,10 @@ import emailjs from '@emailjs/browser'
 import { customAlphabet } from 'nanoid'
 
 // ⚙️ Configurações do nanoid para gerar códigos de acesso
-export const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6)
+// 10 caracteres: o código também é usado como ID do documento no Firestore
+// (busca pública por "get" direto, nunca por "list"), então precisa de
+// espaço suficiente para não ser viável de adivinhar por força bruta.
+export const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 10)
 
 // 🎨 Formata data de "YYYY-MM-DD" para "DD/MM/YYYY"
 export const formatDate = dateStr => {

@@ -38,33 +38,25 @@ const handleSubmit = async () => {
   state.searching = true
   state.errorMsg = null
 
-  if (!state.search.trim()) {
-    state.errorMsg = invalidCode
+  const code = state.search.trim().toUpperCase()
+
+  if (!code) {
+    state.errorMsg = messages.invalidCode
     state.searching = false
     return
   }
 
   try {
-    await requestStore.get([
-      {
-        field: 'access_code',
-        value: state.search
-      }
-    ])
+    const request = await requestStore.getById(code)
 
-    if (requestStore.hasRequests) {
-      router.push({
-        name: 'request-result',
-        params: { id: requestStore.requests[0].id }
-      })
+    if (request) {
+      router.push({ name: 'request-result', params: { id: code } })
     } else {
-      // state.errorMsg = messages.notFound
       sweet.error(messages.notFound)
     }
   } catch (error) {
     console.error('Erro na consulta de código de acesso:', error)
     sweet.error(messages.error)
-    // state.errorMsg =
   } finally {
     state.searching = false
   }

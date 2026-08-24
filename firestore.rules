@@ -1,0 +1,96 @@
+rules_version = '2';
+
+// ATENÇÃO: este arquivo foi escrito com base na leitura do código do app,
+// mas não pôde ser testado neste ambiente (sem acesso ao Firebase CLI /
+// emulador). Teste com o Firestore Emulator antes de confiar em produção:
+// https://firebase.google.com/docs/rules/emulator-setup
+//
+// Nomes de coleção usados abaixo: "semesters", "coordinators", "requests".
+// Se você usar outros nomes nas variáveis VITE_FIREBASE_COLLECTION_* do
+// .env, ajuste os caminhos "match /..." correspondentes aqui também.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Secretaria/coordenação = qualquer usuário autenticado no Firebase Auth
+    // (o app não tem múltiplos papéis; todo usuário logado é staff).
+    function isStaff() {
+      return request.auth != null;
+    }
+
+    // -----------------------------------------------------------------
+    // semesters
+    // Leitura pública: a Home precisa saber se há semestre ativo/previsto
+    // sem exigir login. Escrita só para a secretaria/coordenação.
+    // -----------------------------------------------------------------
+    match /semesters/{semesterId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    // -----------------------------------------------------------------
+    // coordinators
+    // Só é lido/usado em telas autenticadas (gestão de coordenadores e
+    // análise de pedidos), não precisa de acesso público.
+    // -----------------------------------------------------------------
+    match /coordinators/{coordinatorId} {
+      allow read, write: if isStaff();
+    }
+
+    // -----------------------------------------------------------------
+    // requests
+    // O ID do documento É o próprio access_code (ver src/stores/request.js).
+    // Isso é o que torna a consulta pública segura: um get() por ID exige
+    // que o cliente já saiba o código; nunca liberamos list() ao público,
+    // então não dá para "escanear" a coleção e descobrir pedidos de outros
+    // alunos.
+    // -----------------------------------------------------------------
+    match /requests/{requestId} {
+      // Qualquer pessoa que tenha o código (o ID do documento) pode
+      // consultar aquele pedido específico.
+      allow get: if true;
+
+      // Listar/filtrar a coleção inteira só para a secretaria/coordenação
+      // autenticada (tela de gestão de pedidos).
+      allow list: if isStaff();
+
+      // Criação pública (formulário de solicitação do aluno), com
+      // validações mínimas para impedir que alguém crie um pedido já
+      // "decidido" (status diferente de Aguardando, parecer, coordenador
+      // ou SIGA preenchidos).
+      allow create: if
+        requestId == request.resource.data.access_code &&
+        request.resource.data.status == 'Aguardando' &&
+        request.resource.data.siga == false &&
+        !('opinion' in request.resource.data) &&
+        !('coordinator' in request.resource.data) &&
+        !('sentAt' in request.resource.data) &&
+        request.resource.data.name is string && request.resource.data.name.size() > 0 &&
+        request.resource.data.email is string && request.resource.data.email.size() > 0 &&
+        request.resource.data.register is string &&
+        request.resource.data.semester is string && request.resource.data.semester.size() > 0 &&
+        request.resource.data.irregularities is list &&
+        request.resource.data.driveLink is string && request.resource.data.driveLink.size() > 0;
+
+      // Atualização:
+      // - secretaria/coordenação: acesso total (parecer, status, SIGA etc).
+      // - o próprio aluno (sem login): só enquanto o pedido ainda está
+      //   "Aguardando", e sem poder alterar os campos de decisão da
+      //   coordenação, o código de acesso ou o semestre.
+      allow update: if isStaff() || (
+        resource.data.status == 'Aguardando' &&
+        request.resource.data.status == 'Aguardando' &&
+        request.resource.data.access_code == resource.data.access_code &&
+        request.resource.data.semester == resource.data.semester &&
+        request.resource.data.siga == resource.data.get('siga', false) &&
+        request.resource.data.get('opinion', null) == resource.data.get('opinion', null) &&
+        request.resource.data.get('coordinator', null) == resource.data.get('coordinator', null) &&
+        request.resource.data.get('sentAt', null) == resource.data.get('sentAt', null)
+      );
+
+      // Exclusão: secretaria/coordenação a qualquer momento, ou o próprio
+      // aluno enquanto o pedido ainda está "Aguardando" (cancelar pedido).
+      allow delete: if isStaff() || resource.data.status == 'Aguardando';
+    }
+  }
+}

@@ -26,14 +26,9 @@ const downloadPDF = async () => {
   state.error = null
 
   try {
-    await requestStore.get([
-      {
-        field: 'access_code',
-        value: code.value
-      }
-    ])
-    if (requestStore.hasRequests) {
-      generatePDF(requestStore.requests[0])
+    const request = await requestStore.getById(code.value)
+    if (request) {
+      generatePDF({ ...request, access_code: code.value })
     } else {
       throw new Error('Código não encontrado.')
     }

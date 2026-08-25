@@ -7,6 +7,20 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Changed (feedback de uso real da tela de análise)
+- O parecer geral do pedido (`request.opinion`) deixou de ser obrigatório
+  — agora é um campo opcional de "Observações gerais", já que cada
+  irregularidade tem seu próprio parecer.
+- Na análise (RequestDetailsView), o campo por irregularidade foi
+  renomeado de "Observação da coordenação" para "Parecer do coordenador"
+  e reordenado para aparecer ANTES do recurso/resposta de pendência do
+  aluno (antes vinha depois) — fica mais natural ler a manifestação do
+  aluno como resposta ao parecer, não o contrário.
+- RequestResultView: a mensagem "Aguardando análise da coordenação" agora
+  depende do status do pedido (`'Aguardando'`), não mais da ausência do
+  parecer geral (que passou a ser opcional e pode ficar vazio mesmo em
+  pedidos já analisados).
+
 ### Fixed (encontrado em teste real, pós-deploy)
 - `firestore.rules`: a regra de criação de pedido exigia que o campo
   `coordinator` estivesse **ausente**, mas o formulário sempre envia

@@ -214,26 +214,28 @@ const extractName = str => {
 
       <!-- OPINIOS -->
       <BaseCard>
-        <h2 class="text-lg font-bold mb-2">Parecer</h2>
+        <h2 class="text-lg font-bold mb-2">Análise</h2>
         <p
-          class="text-gray-700 whitespace-pre-wrap text-sm mb-2"
-          v-if="request.opinion"
-        >
-          {{ request.opinion }}
-        </p>
-        <p
-          class="text-gray-700 font-bold whitespace-pre-wrap text-sm border-t border-gray-200 pt-2 mb-2"
-          v-if="request.coordinator"
-        >
-          <span class="text-sm font-normal">Coordenador(a): </span
-          >{{ extractName(request.coordinator) }}
-        </p>
-        <p
-          v-if="!request.opinion"
+          v-if="request.status === 'Aguardando'"
           class="text-gray-700 whitespace-pre-wrap text-sm"
         >
           Aguardando análise da coordenação.
         </p>
+        <template v-else>
+          <p
+            class="text-gray-700 whitespace-pre-wrap text-sm mb-2"
+            v-if="request.opinion"
+          >
+            {{ request.opinion }}
+          </p>
+          <p
+            class="text-gray-700 font-bold whitespace-pre-wrap text-sm border-t border-gray-200 pt-2 mb-2"
+            v-if="request.coordinator"
+          >
+            <span class="text-sm font-normal">Coordenador(a): </span
+            >{{ extractName(request.coordinator) }}
+          </p>
+        </template>
 
         <p
           :class="request.siga ? 'text-green-600' : 'text-red-600'"

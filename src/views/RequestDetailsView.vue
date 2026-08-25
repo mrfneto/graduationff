@@ -164,6 +164,24 @@ const handleSubmit = async () => {
                 </p>
               </div>
 
+              <div class="mt-2" v-if="item.status !== 'Autorizado'">
+                <label
+                  :for="`coordinator-note-${index}`"
+                  class="text-sm font-semibold block mb-1"
+                >
+                  Parecer do coordenador
+                  <span class="font-normal text-gray-500">
+                    (visível para o aluno)
+                  </span>
+                </label>
+                <textarea
+                  :id="`coordinator-note-${index}`"
+                  v-model="item.coordinatorNote"
+                  placeholder="Explique o que precisa ser corrigido ou complementado nesta irregularidade..."
+                  class="w-full border border-gray-300 rounded-md p-2 text-sm min-h-[70px]"
+                ></textarea>
+              </div>
+
               <!-- Recurso enviado pelo aluno (se houver) -->
               <div
                 v-if="item.appeal"
@@ -189,24 +207,6 @@ const handleSubmit = async () => {
                   {{ item.pendingResponse }}
                 </p>
               </div>
-
-              <div class="mt-2" v-if="item.status !== 'Autorizado'">
-                <label
-                  :for="`coordinator-note-${index}`"
-                  class="text-sm font-semibold block mb-1"
-                >
-                  Observação da coordenação
-                  <span class="font-normal text-gray-500">
-                    (visível para o aluno)
-                  </span>
-                </label>
-                <textarea
-                  :id="`coordinator-note-${index}`"
-                  v-model="item.coordinatorNote"
-                  placeholder="Explique o que precisa ser corrigido ou complementado nesta irregularidade..."
-                  class="w-full border border-gray-300 rounded-md p-2 text-sm min-h-[70px]"
-                ></textarea>
-              </div>
             </div>
 
             <!-- Documentos do aluno -->
@@ -225,18 +225,17 @@ const handleSubmit = async () => {
         </div>
       </BaseCard>
 
-      <!-- Grupo 2: Parecer do Coordenador -->
-      <BaseCard title="Parecer do Coordenador">
+      <!-- Grupo 2: Decisão da Coordenação -->
+      <BaseCard title="Decisão da Coordenação">
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <div class="grid md:grid-cols-2 gap-4">
             <BaseInput
               type="textarea"
               id="opinion"
               v-model="request.opinion"
-              label="Parecer do coordenador"
-              placeholder="Informe o parecer aqui"
-              required
-              hint="Em caso de pendência corrigível, marque a irregularidade como 'Pendente' e use a observação — o aluno poderá editar e reenviar a solicitação pelo próprio sistema. Se indeferir, o aluno poderá abrir um recurso (uma única vez por irregularidade)."
+              label="Observações gerais"
+              placeholder="Opcional — use o parecer de cada irregularidade acima para explicar decisões específicas"
+              hint="Em caso de pendência corrigível, marque a irregularidade como 'Pendente' e use o parecer dela — o aluno poderá editar e reenviar a solicitação pelo próprio sistema. Se indeferir, o aluno poderá abrir um recurso (uma única vez por irregularidade)."
             />
 
             <div>

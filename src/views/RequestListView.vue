@@ -23,7 +23,11 @@ const { activeSemester } = storeToRefs(semesterStore)
 const { user } = storeToRefs(authStore)
 
 const loading = ref(true)
+const exporting = ref(false)
 
+// ⚠️ Como a lista é paginada, esses filtros só se aplicam ao que já foi
+// carregado (não ao semestre inteiro) — por isso o hint na tela quando um
+// filtro está ativo e ainda há mais páginas pra carregar.
 const filteredRequests = computed(() =>
   requests.value.filter(r => {
     const nameMatch = r.name
@@ -49,24 +53,22 @@ const filteredRequests = computed(() =>
   })
 )
 
-const loadRequest = async () => {
-  if (
-    !requestStore.hasRequests ||
-    requests.value[0]?.semester !== filters.value.semester
-  ) {
-    await requestStore.get([
-      {
-        field: 'semester',
-        value: filters.value.semester
-      }
-    ])
-  }
+const hasActiveFilter = computed(
+  () =>
+    !!filters.value.name ||
+    !!filters.value.course ||
+    !!filters.value.status ||
+    !!filters.value.siga
+)
+
+const loadMore = async () => {
+  await requestStore.get(filters.value.semester)
 }
 
 watch(
   () => filters.value.semester,
   async () => {
-    await loadRequest()
+    if (filters.value.semester) await loadMore()
   },
   { immediate: true }
 )
@@ -77,9 +79,21 @@ onMounted(async () => {
   filters.value.semester = activeSemester.value?.name
     ? activeSemester.value.name
     : filters.value.semester
-  await loadRequest()
+  if (filters.value.semester) await loadMore()
   loading.value = false
 })
+
+// Exportar sempre traz o semestre inteiro, mesmo que a tela só tenha
+// carregado algumas páginas até aqui.
+const handleExport = async () => {
+  exporting.value = true
+  try {
+    await requestStore.loadAll(filters.value.semester)
+    exportToCSV(filteredRequests.value)
+  } finally {
+    exporting.value = false
+  }
+}
 </script>
 
 <template>
@@ -88,18 +102,19 @@ onMounted(async () => {
     :description="`Olá, ${user?.email}`"
   >
     <template #actions>
-      <div class="space-x-2">
+      <div class="space-x-2 flex items-center">
         <BaseButton
           v-if="filteredRequests.length"
-          @click="exportToCSV(filteredRequests)"
+          @click="handleExport"
+          :loading="exporting"
           variant="secondary"
           icon
-          title="Exportar para CSV"
+          title="Exportar semestre inteiro para CSV"
         >
           <FileDown class="w-4 h-4" />
         </BaseButton>
         <span class="font-bold">
-          Total de pedidos: {{ filteredRequests.length }}
+          {{ filteredRequests.length }} carregado(s)
         </span>
       </div>
     </template>
@@ -156,6 +171,23 @@ onMounted(async () => {
               </div>
             </div>
           </BaseList>
+        </div>
+
+        <div v-if="!loading && requestStore.hasMore" class="text-center pt-2">
+          <p
+            v-if="hasActiveFilter"
+            class="text-xs text-gray-500 mb-2"
+          >
+            Os filtros valem só pra o que já foi carregado — carregue mais
+            pra ver mais resultados.
+          </p>
+          <BaseButton
+            variant="secondary"
+            :loading="requestStore.loadingMore"
+            @click="loadMore"
+          >
+            Carregar mais
+          </BaseButton>
         </div>
       </div>
     </div>

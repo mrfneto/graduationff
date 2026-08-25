@@ -7,6 +7,22 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Added
+- **Paginação nas listas de Pedidos e Efetivação**: em vez de ler o
+  semestre inteiro do Firestore de uma vez, `requestStore.get()` agora
+  busca 10 registros por vez (ordenados por data de criação e nome), com
+  um botão "Carregar mais" pra buscar a próxima página. Reduz bastante as
+  leituras cobradas quando o semestre tem muitos pedidos.
+  - Os filtros de nome/curso/status/SIGA continuam sendo aplicados no
+    cliente, mas agora só sobre o que já foi carregado — a tela avisa
+    quando há mais páginas que podem conter resultados adicionais.
+  - O botão de exportar CSV (RequestListView) passou a carregar todas as
+    páginas restantes do semestre antes de gerar o arquivo, garantindo
+    que a exportação sempre saia completa, independente de quanto já
+    tinha sido paginado na tela.
+  - Removido o cache antigo por semestre (`requestsCache`), substituído
+    pelo estado de paginação (`hasMore`/`loadingMore`).
+
 ### Removed
 - Checkbox "Lançado no SIGA pela Secretaria" tirado da tela de análise
   (RequestDetailsView) — ficou redundante com a página dedicada de

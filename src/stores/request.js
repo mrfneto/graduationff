@@ -10,16 +10,26 @@ import {
   deleteDoc,
   getDocs,
   getDoc,
+  limit,
   orderBy,
   runTransaction,
   serverTimestamp,
+  startAfter,
   where
 } from 'firebase/firestore'
 import { nanoid } from '../helpers'
 
+const PAGE_SIZE = 10
+
 export const useRequestStore = defineStore('request', () => {
   const requests = ref([])
-  const requestsCache = ref({})
+
+  // 📄 Estado da paginação da listagem por semestre — get() busca 10 por
+  // vez em vez de trazer o semestre inteiro de uma tacada só.
+  const paginatedSemester = ref(null)
+  const lastDoc = ref(null)
+  const hasMore = ref(true)
+  const loadingMore = ref(false)
 
   const collectionName = import.meta.env.VITE_FIREBASE_COLLECTION_REQUESTS
   const lockCollectionName = import.meta.env
@@ -47,42 +57,67 @@ export const useRequestStore = defineStore('request', () => {
   // ✅ Computado auxiliar
   const hasRequests = computed(() => requests.value.length > 0)
 
-  // 🔄 Busca registros com ordenação e filtro opcional
-  const get = async (arrayFilters = []) => {
-    // alterado
-    const semestreFilter = arrayFilters.find(f => f.field === 'semester')
-    const semestre = semestreFilter?.value
-
-    if (semestre && requestsCache.value[semestre]) {
-      requests.value = requestsCache.value[semestre]
+  // 🔄 Carrega a PRÓXIMA página (10 por vez) de solicitações do semestre
+  // informado, ordenadas por data de criação e nome. Trocar de semestre
+  // reinicia a paginação do zero; chamar de novo com o MESMO semestre
+  // busca a página seguinte — é o que o botão "Carregar mais" faz.
+  const get = async semester => {
+    if (!semester) {
+      requests.value = []
+      paginatedSemester.value = null
+      lastDoc.value = null
+      hasMore.value = true
       return
     }
 
+    if (paginatedSemester.value !== semester) {
+      requests.value = []
+      paginatedSemester.value = semester
+      lastDoc.value = null
+      hasMore.value = true
+    }
+
+    if (!hasMore.value || loadingMore.value) return
+
+    loadingMore.value = true
     try {
       let q = query(
         collection(db, collectionName),
+        where('semester', '==', semester),
         orderBy('created_at', 'asc'),
-        orderBy('name')
+        orderBy('name'),
+        limit(PAGE_SIZE)
       )
 
-      arrayFilters.forEach(f => {
-        q = query(q, where(f.field, '==', f.value))
-      })
+      if (lastDoc.value) {
+        q = query(q, startAfter(lastDoc.value))
+      }
 
       const snapshot = await getDocs(q)
-      const data = snapshot.docs.map(docSnap => ({
+      const page = snapshot.docs.map(docSnap => ({
         id: docSnap.id,
         ...docSnap.data()
       }))
 
-      requests.value = data
-      if (semestre) {
-        requestsCache.value[semestre] = data
-      }
-
-      // console.log('[RequestStore] Registros carregados:', requests.value.length)
+      requests.value = [...requests.value, ...page]
+      lastDoc.value = snapshot.docs.at(-1) ?? lastDoc.value
+      hasMore.value = snapshot.docs.length === PAGE_SIZE
     } catch (error) {
       console.error('[RequestStore] Erro ao buscar registros:', error)
+    } finally {
+      loadingMore.value = false
+    }
+  }
+
+  // 📦 Carrega TODAS as páginas restantes do semestre — usado só pela
+  // exportação em CSV, que precisa do conjunto completo, não apenas do
+  // que já foi paginado na tela.
+  const loadAll = async semester => {
+    if (paginatedSemester.value !== semester) {
+      await get(semester)
+    }
+    while (hasMore.value) {
+      await get(semester)
     }
   }
 
@@ -196,7 +231,10 @@ export const useRequestStore = defineStore('request', () => {
     filters,
     requests,
     hasRequests,
+    hasMore,
+    loadingMore,
     get,
+    loadAll,
     getById,
     checkDuplicate,
     save,

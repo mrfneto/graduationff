@@ -49,9 +49,11 @@ const filteredRequests = computed(() =>
 const loadRequests = async () => {
   if (!filters.semester) return
   loading.value = true
-  await requestStore.get([{ field: 'semester', value: filters.semester }])
+  await requestStore.get(filters.semester)
   loading.value = false
 }
+
+const loadMore = () => requestStore.get(filters.semester)
 
 onMounted(async () => {
   await semesterStore.get()
@@ -123,7 +125,7 @@ const extractCoordinatorName = str => {
 
     <div v-else class="space-y-3">
       <p class="text-sm text-gray-600 mb-2">
-        {{ filteredRequests.length }} pedido(s)
+        {{ filteredRequests.length }} pedido(s) carregado(s)
       </p>
 
       <BaseCard
@@ -192,6 +194,20 @@ const extractCoordinatorName = str => {
           </div>
         </div>
       </BaseCard>
+    </div>
+
+    <div v-if="!loading && filters.semester && requestStore.hasMore" class="text-center pt-4">
+      <p class="text-xs text-gray-500 mb-2">
+        O filtro de "Efetivado no SIGA" vale só pra o que já foi
+        carregado — carregue mais pra ver mais resultados.
+      </p>
+      <BaseButton
+        variant="secondary"
+        :loading="requestStore.loadingMore"
+        @click="loadMore"
+      >
+        Carregar mais
+      </BaseButton>
     </div>
   </AppLayout>
 </template>

@@ -34,8 +34,17 @@ const loading = ref(true)
 
 const id = computed(() => route.params.id)
 
-const hasPendingIrregularity = computed(() =>
-  request.value?.irregularities?.some(i => i.status === 'Pendente')
+// Só mostra o aviso de "corrija e reenvie" enquanto o pedido está fora de
+// "Aguardando" (ou seja, a coordenação já marcou a pendência e está
+// esperando o aluno agir). Depois que o aluno responde e reenvia, o
+// status volta pra "Aguardando" — o item continua 'Pendente' internamente
+// (a coordenação ainda vai reavaliar), mas repetir "corrija e reenvie"
+// logo após o aluno já ter corrigido seria confuso; o alerta de "ainda
+// estamos analisando" abaixo já cobre esse caso.
+const hasPendingIrregularity = computed(
+  () =>
+    request.value?.status !== 'Aguardando' &&
+    request.value?.irregularities?.some(i => i.status === 'Pendente')
 )
 // Novas irregularidades nascem com status 'Não autorizado' como valor
 // provisório (ver RequestIrregularities.vue), então só faz sentido falar

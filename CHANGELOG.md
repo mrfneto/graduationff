@@ -19,6 +19,13 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
   recurso" em pedidos que ainda nem tinham sido analisados (status
   `'Aguardando'`). Corrigido para só mostrar o aviso/CTA de recurso quando
   o pedido já foi de fato analisado.
+- `RequestResultView.vue`: mesmo princípio para o aviso de pendência — ao
+  reenviar uma resposta de pendência, o item continua `'Pendente'`
+  internamente (a coordenação ainda vai reavaliar) e o status do pedido
+  volta pra `'Aguardando'`, então o alerta "corrija e reenvie" reaparecia
+  logo após o aluno já ter corrigido e reenviado. Agora só mostra esse
+  aviso quando o pedido está fora de `'Aguardando'` (o alerta de "ainda
+  estamos analisando" já cobre o caso de reenvio recente).
 
 ### Added (parte 2)
 - Comprovante em PDF é **baixado automaticamente** ao criar um pedido novo

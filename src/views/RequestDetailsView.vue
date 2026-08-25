@@ -230,57 +230,33 @@ const handleSubmit = async () => {
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <div class="grid md:grid-cols-2 gap-4">
             <BaseInput
-              type="textarea"
-              id="opinion"
-              v-model="request.opinion"
-              label="Observações gerais"
-              placeholder="Opcional — use o parecer de cada irregularidade acima para explicar decisões específicas"
-              hint="Em caso de pendência corrigível, marque a irregularidade como 'Pendente' e use o parecer dela — o aluno poderá editar e reenviar a solicitação pelo próprio sistema. Se indeferir, o aluno poderá abrir um recurso (uma única vez por irregularidade)."
+              id="coordinator"
+              type="select"
+              v-model="request.coordinator"
+              :options="coordinatorOptions"
+              label="Coordenador Responsável"
+              placeholder="Nome do coordenador"
+              required
             />
 
-            <div>
-              <BaseInput
-                id="coordinator"
-                type="select"
-                v-model="request.coordinator"
-                :options="coordinatorOptions"
-                label="Coordenador Responsável"
-                placeholder="Nome do coordenador"
-                required
-              />
-
-              <div class="mt-4">
-                <span class="text-sm font-medium text-gray-700 block mb-1">
-                  Status do pedido (calculado automaticamente)
-                </span>
-                <BaseBadge :variant="getStatusColor(previewStatus)">
-                  {{ previewStatus }}
-                </BaseBadge>
-                <p class="text-xs text-gray-500 mt-1">
-                  Calculado a partir do status marcado em cada irregularidade
-                  acima.
-                </p>
-              </div>
-
-              <div>
-                <label
-                  class="inline-flex items-center space-x-2 cursor-pointer mt-4"
+            <div class="flex items-end">
+              <label
+                class="inline-flex items-center space-x-2 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  v-model="request.siga"
+                  class="form-checkbox h-5 w-5 text-primary-600"
+                />
+                <span
+                  :class="request.siga ? 'text-green-600' : 'text-red-600'"
+                  >{{
+                    request.siga
+                      ? 'Lançado no SIGA pela Secretaria'
+                      : 'Não lançado no SIGA pela Secretaria'
+                  }}</span
                 >
-                  <input
-                    type="checkbox"
-                    v-model="request.siga"
-                    class="form-checkbox h-5 w-5 text-primary-600"
-                  />
-                  <span
-                    :class="request.siga ? 'text-green-600' : 'text-red-600'"
-                    >{{
-                      request.siga
-                        ? 'Lançado no SIGA pela Secretaria'
-                        : 'Não lançado no SIGA pela Secretaria'
-                    }}</span
-                  >
-                </label>
-              </div>
+              </label>
             </div>
           </div>
 

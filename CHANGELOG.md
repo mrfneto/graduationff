@@ -7,6 +7,16 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Changed (feedback de uso real da tela de análise, parte 2)
+- Removido o campo "Observações gerais" (antigo parecer geral) por
+  completo do formulário de análise — não fazia mais sentido existir
+  separado do parecer por irregularidade. Pedidos antigos que já tinham
+  esse texto salvo continuam exibindo-o normalmente na consulta pública
+  (não apagamos dados existentes, só a possibilidade de editar).
+- Removido o preview "Status do pedido (calculado automaticamente)" da
+  tela de análise — duplicava o badge de status que já aparece no topo da
+  página.
+
 ### Changed (feedback de uso real da tela de análise)
 - O parecer geral do pedido (`request.opinion`) deixou de ser obrigatório
   — agora é um campo opcional de "Observações gerais", já que cada

@@ -7,6 +7,12 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Changed (feedback de uso real da tela de análise, parte 3)
+- Removido o card "Decisão da Coordenação" (que já tinha ficado só com o
+  seletor de coordenador, o checkbox do SIGA e os botões) — esse conteúdo
+  subiu pro mesmo card de "Informações do Aluno", que agora tem um único
+  `<form>` cobrindo a tela inteira de análise.
+
 ### Changed (feedback de uso real da tela de análise, parte 2)
 - Removido o campo "Observações gerais" (antigo parecer geral) por
   completo do formulário de análise — não fazia mais sentido existir

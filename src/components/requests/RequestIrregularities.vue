@@ -1,7 +1,9 @@
 <script setup>
-import { CheckCircle } from 'lucide-vue-next'
+import { ref } from 'vue'
+import { Plus, Trash2 } from 'lucide-vue-next'
+import BaseInput from '../ui/BaseInput.vue'
+import BaseButton from '../ui/BaseButton.vue'
 
-// Props e emits
 const props = defineProps({
   irregularities: {
     type: Array,
@@ -11,7 +13,12 @@ const props = defineProps({
 
 const emit = defineEmits(['update:irregularities'])
 
-// Lista de opções
+// Lista de tipos — um aluno pode ter mais de uma irregularidade do MESMO
+// tipo (ex.: "Falta de requisito" em duas disciplinas diferentes), cada
+// uma com sua própria justificativa e sua própria decisão da coordenação.
+// Por isso isto não é mais um checklist de seleção única por tipo: cada
+// clique em "Adicionar" cria um item novo na lista, independente dos
+// outros — inclusive de mesmo nome.
 const irregularitiesOptions = [
   'Falta de requisito',
   'Mais de 32 créditos',
@@ -20,93 +27,87 @@ const irregularitiesOptions = [
   'Outros'
 ]
 
-// Verifica se está selecionada
-function isSelected(option) {
-  return props.irregularities.some(irr => irr.name === option)
+const draftType = ref(irregularitiesOptions[0])
+const draftDescription = ref('')
+
+const addIrregularity = () => {
+  const description = draftDescription.value.trim()
+  if (!description || !draftType.value) return
+
+  emit('update:irregularities', [
+    ...props.irregularities,
+    // "Não autorizado" aqui é só o valor inicial antes de qualquer
+    // análise da coordenação (mesmo padrão usado antes).
+    { name: draftType.value, description, status: 'Não autorizado' }
+  ])
+
+  draftDescription.value = ''
 }
 
-// Obtém descrição atual
-function getIrregularityDescription(option) {
-  const irr = props.irregularities.find(irr => irr.name === option)
-  return irr ? irr.description : ''
-}
-
-// Alterna item selecionado
-function toggleIrregularity(option) {
+const removeIrregularity = index => {
   const updated = [...props.irregularities]
-  const index = updated.findIndex(irr => irr.name === option)
-
-  if (index !== -1) {
-    updated.splice(index, 1)
-  } else {
-    // "Não autorizado" aqui é só o valor inicial antes de qualquer análise
-    // da coordenação (mesmo padrão usado antes com o campo booleano).
-    updated.push({ name: option, description: '', status: 'Não autorizado' })
-  }
-
-  emit('update:irregularities', updated)
-}
-
-// Atualiza descrição
-function updateIrregularityDescription(option, value) {
-  const updated = props.irregularities.map(irr =>
-    irr.name === option ? { ...irr, description: value } : irr
-  )
+  updated.splice(index, 1)
   emit('update:irregularities', updated)
 }
 </script>
 
 <template>
-  <div class="space-y-3">
-    <div
-      v-for="option in irregularitiesOptions"
-      :key="option"
-      class="space-y-3"
-    >
-      <div
-        :class="[
-          'p-4 border-2 rounded-lg cursor-pointer transition-all',
-          isSelected(option)
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-200 hover:border-gray-300 bg-white'
-        ]"
-        @click="toggleIrregularity(option)"
+  <div class="space-y-4">
+    <!-- Formulário de adição -->
+    <div class="p-4 border-2 border-gray-200 rounded-lg space-y-3 bg-white">
+      <BaseInput
+        id="irregularity-type"
+        type="select"
+        label="Tipo de irregularidade"
+        v-model="draftType"
+        :options="irregularitiesOptions"
+      />
+      <BaseInput
+        id="irregularity-description"
+        type="textarea"
+        label="Descreva esta irregularidade"
+        v-model="draftDescription"
+        placeholder="Descreva detalhadamente a situação..."
+        hint="Tem mais de uma ocorrência do mesmo tipo (ex.: falta de requisito em duas disciplinas)? Adicione uma de cada vez — cada uma será analisada separadamente."
+      />
+      <BaseButton
+        type="button"
+        variant="secondary"
+        :disabled="!draftDescription.trim() || !draftType"
+        @click="addIrregularity"
       >
-        <div class="flex items-center space-x-3">
-          <div
-            :class="[
-              'w-5 h-5 rounded border-2 flex items-center justify-center',
-              isSelected(option)
-                ? 'bg-blue-500 border-blue-500'
-                : 'border-gray-300'
-            ]"
-          >
-            <CheckCircle v-if="isSelected(option)" class="w-3 h-3 text-white" />
-          </div>
-          <span
-            :class="[
-              'font-medium',
-              isSelected(option) ? 'text-blue-700' : 'text-gray-700'
-            ]"
-          >
-            {{ option }}
-          </span>
-        </div>
-      </div>
-
-      <div v-if="isSelected(option)" class="ml-8 space-y-2">
-        <label :for="`desc-${option}`" class="text-sm">
-          Descreva esta irregularidade *
-        </label>
-        <textarea
-          :id="`desc-${option}`"
-          :placeholder="`Descreva detalhadamente a situação relacionada a '${option}'...`"
-          :value="getIrregularityDescription(option)"
-          @input="updateIrregularityDescription(option, $event.target.value)"
-          class="min-h-[80px] w-full border border-gray-300 rounded-md p-2"
-          required
-        ></textarea>
-      </div>
+        <Plus class="w-4 h-4 mr-2" />
+        Adicionar irregularidade
+      </BaseButton>
     </div>
+
+    <!-- Lista de irregularidades já adicionadas -->
+    <p v-if="irregularities.length === 0" class="text-sm text-gray-500">
+      Nenhuma irregularidade adicionada ainda.
+    </p>
+
+    <ul v-else class="space-y-2">
+      <li
+        v-for="(irr, index) in irregularities"
+        :key="index"
+        class="flex items-start justify-between gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+      >
+        <div class="min-w-0">
+          <p class="font-medium text-blue-900">{{ irr.name }}</p>
+          <p class="text-sm text-blue-800 whitespace-pre-wrap">
+            {{ irr.description }}
+          </p>
+        </div>
+        <button
+          type="button"
+          class="text-gray-400 hover:text-red-600 shrink-0"
+          title="Remover"
+          aria-label="Remover irregularidade"
+          @click="removeIrregularity(index)"
+        >
+          <Trash2 class="w-4 h-4" />
+        </button>
+      </li>
+    </ul>
   </div>
 </template>

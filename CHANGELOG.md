@@ -7,6 +7,18 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Fixed
+- `RequestIrregularities.vue` era um checklist de seleção única por tipo
+  — um aluno com duas ocorrências do mesmo tipo (ex.: "Falta de
+  requisito" em duas disciplinas diferentes) não conseguia registrá-las
+  separadamente, então a coordenação não tinha como autorizar uma e
+  negar a outra. Trocado por um formulário de "adicionar irregularidade"
+  que permite qualquer quantidade de itens, inclusive repetidos, cada um
+  com sua própria justificativa e status independente. O resto do
+  sistema (análise, pendência, recurso, consulta pública) já tratava
+  cada irregularidade pela posição na lista, não pelo nome — não
+  precisou de nenhuma outra mudança.
+
 ### Added
 - **Paginação nas listas de Pedidos e Efetivação**: em vez de ler o
   semestre inteiro do Firestore de uma vez, `requestStore.get()` agora

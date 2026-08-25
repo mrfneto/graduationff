@@ -79,12 +79,15 @@ service cloud.firestore {
       // validações mínimas para impedir que alguém crie um pedido já
       // "decidido" (status diferente de Aguardando, parecer, coordenador
       // ou SIGA preenchidos).
+      // OBS: o formulário (RequestFormView.vue) sempre envia coordinator
+      // como string vazia (nunca omite a chave) — por isso o "get(...,
+      // '')" abaixo em vez de checar ausência da chave com "in".
       allow create: if
         requestId == request.resource.data.access_code &&
         request.resource.data.status == 'Aguardando' &&
         request.resource.data.siga == false &&
         !('opinion' in request.resource.data) &&
-        !('coordinator' in request.resource.data) &&
+        request.resource.data.get('coordinator', '') == '' &&
         request.resource.data.name is string && request.resource.data.name.size() > 0 &&
         request.resource.data.email is string && request.resource.data.email.size() > 0 &&
         request.resource.data.register is string &&

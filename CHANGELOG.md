@@ -7,6 +7,13 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Fixed (encontrado em teste real, pós-deploy)
+- `firestore.rules`: a regra de criação de pedido exigia que o campo
+  `coordinator` estivesse **ausente**, mas o formulário sempre envia
+  `coordinator: ''` (string vazia) — nunca omite a chave. Isso bloqueava
+  toda criação de pedido em produção com "Missing or insufficient
+  permissions". Corrigido para `get('coordinator', '') == ''`.
+
 ### Added (parte 2)
 - Comprovante em PDF é **baixado automaticamente** ao criar um pedido novo
   (não em reenvios de pendência/recurso, que passam pela mesma tela).

@@ -74,6 +74,23 @@ const toggleEfetivado = async request => {
   }
 }
 
+// Salva ao sair do campo (blur), não a cada tecla — evita gravar no
+// Firestore a cada caractere digitado.
+const saveSigaNote = async request => {
+  savingId.value = request.id
+  try {
+    await requestStore.save(
+      { ...request, sigaNote: (request.sigaNote || '').trim() },
+      request.id
+    )
+  } catch (error) {
+    console.error('[Efetivação] Erro ao salvar observação:', error)
+    await sweet.error('Não foi possível salvar a observação. Tente novamente.')
+  } finally {
+    savingId.value = null
+  }
+}
+
 const extractCoordinatorName = str => {
   return str?.split(' - ')[1] || str || ''
 }
@@ -160,6 +177,22 @@ const extractCoordinatorName = str => {
                 </BaseBadge>
               </li>
             </ul>
+
+            <div class="mt-3">
+              <label
+                :for="`siga-note-${request.id}`"
+                class="text-xs font-semibold text-gray-500 block mb-1"
+              >
+                Observação da secretaria
+              </label>
+              <textarea
+                :id="`siga-note-${request.id}`"
+                v-model="request.sigaNote"
+                placeholder="Ex.: pendência com a secretaria acadêmica, aguardando confirmação..."
+                class="w-full border border-gray-300 rounded-md p-2 text-sm min-h-[50px]"
+                @blur="saveSigaNote(request)"
+              ></textarea>
+            </div>
           </div>
 
           <div

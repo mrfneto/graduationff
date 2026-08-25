@@ -163,20 +163,20 @@ const handleSubmit = async () => {
                 </p>
               </div>
 
-              <div class="mt-2" v-if="item.status !== 'Autorizado'">
+              <div class="mt-2">
                 <label
                   :for="`coordinator-note-${index}`"
                   class="text-sm font-semibold block mb-1"
                 >
                   Parecer do coordenador
                   <span class="font-normal text-gray-500">
-                    (visível para o aluno)
+                    (opcional — visível para o aluno)
                   </span>
                 </label>
                 <textarea
                   :id="`coordinator-note-${index}`"
                   v-model="item.coordinatorNote"
-                  placeholder="Explique o que precisa ser corrigido ou complementado nesta irregularidade..."
+                  placeholder="Explique o que precisa ser corrigido/complementado, ou deixe uma observação sobre a autorização..."
                   class="w-full border border-gray-300 rounded-md p-2 text-sm min-h-[70px]"
                 ></textarea>
               </div>

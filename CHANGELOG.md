@@ -7,6 +7,18 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Added
+- Campo **"Observação da secretaria"** na página de Efetivação — texto
+  livre por pedido, salvo ao sair do campo (blur). Novo campo `sigaNote`.
+
+### Changed
+- Na análise (RequestDetailsView), o "Parecer do coordenador" por
+  irregularidade agora fica **sempre visível**, mesmo quando o item é
+  marcado como Autorizado — antes só aparecia se não fosse autorizado, e
+  o coordenador não tinha onde deixar uma observação num item aprovado.
+  A consulta pública (RequestResultView) também parou de esconder essa
+  observação quando o item é Autorizado.
+
 ### Fixed
 - `RequestIrregularities.vue` era um checklist de seleção única por tipo
   — um aluno com duas ocorrências do mesmo tipo (ex.: "Falta de

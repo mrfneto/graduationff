@@ -184,10 +184,7 @@ const extractName = str => {
                 {{ irr.status }}
               </BaseBadge>
             </div>
-            <p
-              v-if="irr.status !== 'Autorizado' && irr.coordinatorNote"
-              class="text-sm text-gray-600 mt-2"
-            >
+            <p v-if="irr.coordinatorNote" class="text-sm text-gray-600 mt-2">
               <strong>Observação da coordenação:</strong>
               {{ irr.coordinatorNote }}
             </p>

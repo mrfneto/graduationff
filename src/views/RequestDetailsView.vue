@@ -222,7 +222,7 @@ const handleSubmit = async () => {
             </div>
           </div>
 
-          <div class="mt-6 pt-6 border-t border-gray-200 md:max-w-sm">
+          <div class="grid md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200">
             <BaseInput
               id="coordinator"
               type="select"
@@ -232,6 +232,17 @@ const handleSubmit = async () => {
               placeholder="Nome do coordenador"
               required
             />
+
+            <div v-if="request.sigaNote">
+              <span class="text-sm font-medium text-gray-700 block mb-1">
+                Observação da secretaria
+              </span>
+              <p
+                class="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 border border-gray-200 rounded-md p-2"
+              >
+                {{ request.sigaNote }}
+              </p>
+            </div>
           </div>
 
           <div class="flex items-center flex-wrap gap-4 mt-6">

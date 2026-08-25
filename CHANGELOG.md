@@ -8,6 +8,11 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 ## [Unreleased]
 
 ### Added
+- "Observação da secretaria" (`sigaNote`) agora também aparece na tela de
+  análise (RequestDetailsView), ao lado do Coordenador Responsável —
+  somente leitura, e só quando não estiver vazia.
+
+
 - Campo **"Observação da secretaria"** na página de Efetivação — texto
   livre por pedido, salvo ao sair do campo (blur). Novo campo `sigaNote`.
 

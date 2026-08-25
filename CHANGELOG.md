@@ -7,6 +7,18 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Added
+- Nova página **Efetivação** (`/efetivacao`, menu da secretaria/coordenação):
+  filtro por semestre (começa vazio) e por "Efetivado no SIGA"
+  (Sim/Não, começa em "Não"). Lista os pedidos **Deferidos** ou
+  **Deferido-Parciais** do semestre selecionado com nome, DRE,
+  irregularidades (com status individual) e um checkbox que salva
+  `siga` imediatamente ao marcar/desmarcar — fluxo pensado pra secretaria
+  abrir a página, ver quem falta lançar no SIGA, e ir confirmando um por
+  um. Reaproveita o cache de `requestStore` por semestre, sem precisar de
+  nenhum índice novo no Firestore (filtro de status feito no cliente,
+  igual já era feito em `RequestFilters.vue`).
+
 ### Changed (feedback de uso real da tela de análise, parte 3)
 - Removido o card "Decisão da Coordenação" (que já tinha ficado só com o
   seletor de coordenador, o checkbox do SIGA e os botões) — esse conteúdo

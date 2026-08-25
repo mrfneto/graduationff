@@ -49,6 +49,12 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Detalhes do pedido' }
     },
     {
+      path: '/efetivacao',
+      name: 'effectivation',
+      component: () => import('../views/EffectivationView.vue'),
+      meta: { requiresAuth: true, title: 'Efetivação' }
+    },
+    {
       path: '/semesters',
       name: 'semesters',
       component: () => import('../views/SemesterListView.vue'),

@@ -19,6 +19,7 @@ const userMenuRef = ref()
 
 const links = [
   { label: 'Pedidos', to: 'requests' },
+  { label: 'Efetivação', to: 'effectivation' },
   { label: 'Semestres', to: 'semesters' },
   { label: 'Coordenadores', to: 'coordinators' }
 ]

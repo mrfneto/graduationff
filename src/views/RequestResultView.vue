@@ -37,10 +37,17 @@ const id = computed(() => route.params.id)
 const hasPendingIrregularity = computed(() =>
   request.value?.irregularities?.some(i => i.status === 'Pendente')
 )
-const hasAppealableIrregularity = computed(() =>
-  request.value?.irregularities?.some(
-    i => i.status === 'Não autorizado' && !i.appealUsed
-  )
+// Novas irregularidades nascem com status 'Não autorizado' como valor
+// provisório (ver RequestIrregularities.vue), então só faz sentido falar
+// em recurso depois que a coordenação de fato analisou o pedido (status
+// diferente de 'Aguardando') — senão qualquer pedido novo pareceria
+// "indeferido" antes mesmo de ser visto.
+const hasAppealableIrregularity = computed(
+  () =>
+    request.value?.status !== 'Aguardando' &&
+    request.value?.irregularities?.some(
+      i => i.status === 'Não autorizado' && !i.appealUsed
+    )
 )
 
 onMounted(async () => {
@@ -182,7 +189,11 @@ const extractName = str => {
               <strong>Sua resposta:</strong> {{ irr.pendingResponse }}
             </p>
             <p
-              v-if="irr.status === 'Não autorizado' && !irr.appealUsed"
+              v-if="
+                request.status !== 'Aguardando' &&
+                irr.status === 'Não autorizado' &&
+                !irr.appealUsed
+              "
               class="text-sm text-primary-700 mt-2"
             >
               Você pode abrir um recurso para esta irregularidade clicando

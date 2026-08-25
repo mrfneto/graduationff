@@ -13,6 +13,12 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
   `coordinator: ''` (string vazia) — nunca omite a chave. Isso bloqueava
   toda criação de pedido em produção com "Missing or insufficient
   permissions". Corrigido para `get('coordinator', '') == ''`.
+- `RequestResultView.vue`: como toda irregularidade nova nasce com status
+  provisório `'Não autorizado'` (até a coordenação decidir de verdade), a
+  tela de consulta pública mostrava "irregularidade indeferida, abra um
+  recurso" em pedidos que ainda nem tinham sido analisados (status
+  `'Aguardando'`). Corrigido para só mostrar o aviso/CTA de recurso quando
+  o pedido já foi de fato analisado.
 
 ### Added (parte 2)
 - Comprovante em PDF é **baixado automaticamente** ao criar um pedido novo

@@ -38,33 +38,25 @@ const handleSubmit = async () => {
   state.searching = true
   state.errorMsg = null
 
-  if (!state.search.trim()) {
-    state.errorMsg = invalidCode
+  const code = state.search.trim().toUpperCase()
+
+  if (!code) {
+    state.errorMsg = messages.invalidCode
     state.searching = false
     return
   }
 
   try {
-    await requestStore.get([
-      {
-        field: 'access_code',
-        value: state.search
-      }
-    ])
+    const request = await requestStore.getById(code)
 
-    if (requestStore.hasRequests) {
-      router.push({
-        name: 'request-result',
-        params: { id: requestStore.requests[0].id }
-      })
+    if (request) {
+      router.push({ name: 'request-result', params: { id: code } })
     } else {
-      // state.errorMsg = messages.notFound
       sweet.error(messages.notFound)
     }
   } catch (error) {
     console.error('Erro na consulta de código de acesso:', error)
     sweet.error(messages.error)
-    // state.errorMsg =
   } finally {
     state.searching = false
   }
@@ -100,13 +92,19 @@ onMounted(async () => {
           v-else
           class="flex flex-col space-y-4 w-full md:max-w-1/2 mx-auto mb-8"
         >
-          <BaseButton
-            v-if="activeSemester"
-            :to="{ name: 'request-create' }"
-            aria-label="Solicitar regularização de disciplinas"
-          >
-            Solicitar Regularização
-          </BaseButton>
+          <template v-if="activeSemester">
+            <BaseButton
+              :to="{ name: 'request-create' }"
+              aria-label="Solicitar regularização de disciplinas"
+            >
+              Solicitar Regularização
+            </BaseButton>
+            <p v-if="activeSemester.resultDate" class="text-sm text-gray-600">
+              Não enviamos e-mail de aviso — consulte o parecer da sua
+              solicitação (com seu código de acesso) a partir de
+              <strong>{{ formatDate(activeSemester.resultDate) }}</strong>.
+            </p>
+          </template>
 
           <BaseAlert variant="warning" v-else-if="predictedSemester">
             O período para solicitar regularização será de

@@ -28,7 +28,7 @@ const handleLogin = async () => {
     router.replace({ name: 'home' })
   } catch (err) {
     error.value = 'Credenciais inválidas. Tente novamente.'
-    console.log(err)
+    console.error(err)
   } finally {
     loading.value = false
   }

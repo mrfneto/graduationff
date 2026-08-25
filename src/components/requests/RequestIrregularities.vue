@@ -39,7 +39,9 @@ function toggleIrregularity(option) {
   if (index !== -1) {
     updated.splice(index, 1)
   } else {
-    updated.push({ name: option, description: '', authorized: false })
+    // "Não autorizado" aqui é só o valor inicial antes de qualquer análise
+    // da coordenação (mesmo padrão usado antes com o campo booleano).
+    updated.push({ name: option, description: '', status: 'Não autorizado' })
   }
 
   emit('update:irregularities', updated)

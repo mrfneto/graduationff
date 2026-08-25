@@ -1,9 +1,11 @@
 import jsPDF from 'jspdf'
-import emailjs from '@emailjs/browser'
 import { customAlphabet } from 'nanoid'
 
 // ⚙️ Configurações do nanoid para gerar códigos de acesso
-export const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6)
+// 10 caracteres: o código também é usado como ID do documento no Firestore
+// (busca pública por "get" direto, nunca por "list"), então precisa de
+// espaço suficiente para não ser viável de adivinhar por força bruta.
+export const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 10)
 
 // 🎨 Formata data de "YYYY-MM-DD" para "DD/MM/YYYY"
 export const formatDate = dateStr => {
@@ -23,59 +25,64 @@ export const formatDateLong = date => {
   return new Date(date).toLocaleDateString('pt-BR', options)
 }
 
-// 🎨 Opções de status para filtros e seleção
+// 🎨 Opções de status do PEDIDO, para filtros e seleção
 export const statusOptions = [
   'Deferido',
   'Indeferido',
   'Deferido-Parcial',
+  'Indeferido-Parcial',
+  'Pendente',
   'Aguardando'
 ]
+
+// 🎨 Opções de status de cada IRREGULARIDADE — escolhidas individualmente
+// pela coordenação. O status do pedido (acima) é sempre calculado a partir
+// destas, nunca escolhido manualmente (ver computeRequestStatus).
+export const irregularityStatusOptions = [
+  'Autorizado',
+  'Não autorizado',
+  'Pendente'
+]
+
+// 🧮 Calcula o status do pedido a partir do status de cada irregularidade:
+// - todas Autorizadas          -> Deferido
+// - todas Não autorizadas      -> Indeferido
+// - todas Pendentes            -> Pendente
+// - mix com ao menos 1 Autorizada -> Deferido-Parcial
+// - mix de Não autorizada + Pendente, sem nenhuma Autorizada -> Indeferido-Parcial
+export const computeRequestStatus = irregularities => {
+  const total = irregularities.length
+  const authorized = irregularities.filter(
+    i => i.status === 'Autorizado'
+  ).length
+  const denied = irregularities.filter(
+    i => i.status === 'Não autorizado'
+  ).length
+  const pending = irregularities.filter(i => i.status === 'Pendente').length
+
+  if (authorized === total) return 'Deferido'
+  if (denied === total) return 'Indeferido'
+  if (pending === total) return 'Pendente'
+  if (authorized > 0) return 'Deferido-Parcial'
+  return 'Indeferido-Parcial'
+}
 
 // 🎨 Mapeia status para cores
 export const getStatusColor = status => {
   switch (status) {
     case 'Deferido':
+    case 'Autorizado':
       return 'success'
     case 'Indeferido':
+    case 'Indeferido-Parcial':
+    case 'Não autorizado':
       return 'danger'
     case 'Deferido-Parcial':
       return 'info'
+    case 'Pendente':
+      return 'warning'
     default:
       return 'default'
-  }
-}
-
-// 📧 Envia e-mail ao solicitante com EmailJS
-export const sendEmail = async request => {
-  const siteUrl = import.meta.env.VITE_SITE_URL
-
-  const irregularitiesSummary = request.irregularities
-    .map(
-      irregularity =>
-        `- ${irregularity.name}: ${
-          irregularity.authorized ? 'Autorizada' : 'Não autorizada'
-        }`
-    )
-    .join('\n')
-
-  try {
-    await emailjs.send(
-      import.meta.env.VITE_EMAILJS_SERVICE_ID,
-      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-      {
-        to_name: request.name,
-        to_email: request.email,
-        status: request.status,
-        access_code: request.access_code,
-        message: request.opinion,
-        irregularities_summary: irregularitiesSummary,
-        site_url: siteUrl
-      },
-      import.meta.env.VITE_PUBLIC_KEY
-    )
-  } catch (error) {
-    console.error('Erro ao enviar e-mail:', error)
-    throw error // ou lidar de outra forma
   }
 }
 
@@ -117,7 +124,7 @@ export const generatePDF = request => {
 
   currentY += 8
   doc.text(
-    'Link para consulta: https://gradff-ufrj.web.app/',
+    `Link para consulta: ${import.meta.env.VITE_SITE_URL || 'https://gradff-ufrj.web.app/'}`,
     marginLeft,
     currentY
   )
@@ -128,6 +135,15 @@ export const generatePDF = request => {
     marginLeft,
     currentY
   )
+
+  if (request.resultDate) {
+    currentY += 8
+    doc.text(
+      `Consulte o parecer a partir de: ${formatDate(request.resultDate)}`,
+      marginLeft,
+      currentY
+    )
+  }
 
   // --- Solicitante ---
   currentY += 15

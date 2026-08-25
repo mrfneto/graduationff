@@ -2,11 +2,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRequestStore } from '@/stores/request'
+import { useSemesterStore } from '@/stores/semester'
 
 import AppLayout from '@/components/layouts/AppLayout.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
+import BaseAlert from '@/components/ui/BaseAlert.vue'
 import AppLoader from '@/components/ui/AppLoader.vue'
 
 import {
@@ -19,20 +21,52 @@ import {
   MoveLeft,
   Edit
 } from 'lucide-vue-next'
-import { formatTimestamp, formatDateLong, getStatusColor } from '../helpers'
+import { formatTimestamp, formatDate, getStatusColor } from '../helpers'
 
 const route = useRoute()
 const requestStore = useRequestStore()
+const semesterStore = useSemesterStore()
 
 const request = ref(null)
+const semester = ref(null)
 const notFound = ref(false)
 const loading = ref(true)
 
 const id = computed(() => route.params.id)
 
+// Só mostra o aviso de "corrija e reenvie" enquanto o pedido está fora de
+// "Aguardando" (ou seja, a coordenação já marcou a pendência e está
+// esperando o aluno agir). Depois que o aluno responde e reenvia, o
+// status volta pra "Aguardando" — o item continua 'Pendente' internamente
+// (a coordenação ainda vai reavaliar), mas repetir "corrija e reenvie"
+// logo após o aluno já ter corrigido seria confuso; o alerta de "ainda
+// estamos analisando" abaixo já cobre esse caso.
+const hasPendingIrregularity = computed(
+  () =>
+    request.value?.status !== 'Aguardando' &&
+    request.value?.irregularities?.some(i => i.status === 'Pendente')
+)
+// Novas irregularidades nascem com status 'Não autorizado' como valor
+// provisório (ver RequestIrregularities.vue), então só faz sentido falar
+// em recurso depois que a coordenação de fato analisou o pedido (status
+// diferente de 'Aguardando') — senão qualquer pedido novo pareceria
+// "indeferido" antes mesmo de ser visto.
+const hasAppealableIrregularity = computed(
+  () =>
+    request.value?.status !== 'Aguardando' &&
+    request.value?.irregularities?.some(
+      i => i.status === 'Não autorizado' && !i.appealUsed
+    )
+)
+
 onMounted(async () => {
   request.value = await requestStore.getById(id.value)
   notFound.value = !request.value
+
+  if (request.value?.semester) {
+    semester.value = await semesterStore.getByName(request.value.semester)
+  }
+
   loading.value = false
 })
 
@@ -72,6 +106,25 @@ const extractName = str => {
     </BaseCard>
 
     <div v-else class="w-full max-w-2xl mx-auto space-y-6">
+      <BaseAlert v-if="hasPendingIrregularity" variant="warning">
+        Sua solicitação tem pendências a corrigir. Veja as observações abaixo
+        e clique em "Editar" para ajustar e reenviar.
+      </BaseAlert>
+
+      <BaseAlert v-if="hasAppealableIrregularity" variant="danger">
+        Uma ou mais irregularidades foram indeferidas. Se quiser, você pode
+        abrir um recurso (uma única vez por irregularidade) clicando em
+        "Editar".
+      </BaseAlert>
+
+      <BaseAlert
+        v-if="request.status === 'Aguardando' && semester?.resultDate"
+        variant="info"
+      >
+        Ainda estamos analisando sua solicitação. Consulte novamente a
+        partir de <strong>{{ formatDate(semester.resultDate) }}</strong>.
+      </BaseAlert>
+
       <BaseCard>
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-bold">Status Geral</h2>
@@ -120,49 +173,69 @@ const extractName = str => {
           <div
             v-for="(irr, index) in request.irregularities"
             :key="index"
-            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            class="p-3 bg-gray-50 rounded-lg"
           >
-            <span class="font-medium">{{ irr.name }}</span>
-            <BaseBadge
-              v-if="request.status !== 'Aguardando'"
-              :variant="irr.authorized ? 'success' : 'danger'"
+            <div class="flex items-center justify-between">
+              <span class="font-medium">{{ irr.name }}</span>
+              <BaseBadge
+                v-if="request.status !== 'Aguardando'"
+                :variant="getStatusColor(irr.status)"
+              >
+                {{ irr.status }}
+              </BaseBadge>
+            </div>
+            <p
+              v-if="irr.status !== 'Autorizado' && irr.coordinatorNote"
+              class="text-sm text-gray-600 mt-2"
             >
-              {{ irr.authorized ? 'Autorizado' : 'Não autorizado' }}
-            </BaseBadge>
+              <strong>Observação da coordenação:</strong>
+              {{ irr.coordinatorNote }}
+            </p>
+            <p v-if="irr.appeal" class="text-sm text-gray-600 mt-2">
+              <strong>Seu recurso:</strong> {{ irr.appeal }}
+            </p>
+            <p v-if="irr.pendingResponse" class="text-sm text-gray-600 mt-2">
+              <strong>Sua resposta:</strong> {{ irr.pendingResponse }}
+            </p>
+            <p
+              v-if="
+                request.status !== 'Aguardando' &&
+                irr.status === 'Não autorizado' &&
+                !irr.appealUsed
+              "
+              class="text-sm text-primary-700 mt-2"
+            >
+              Você pode abrir um recurso para esta irregularidade clicando
+              em "Editar".
+            </p>
           </div>
         </div>
       </BaseCard>
 
       <!-- OPINIOS -->
       <BaseCard>
-        <h2 class="text-lg font-bold mb-2">Parecer</h2>
+        <h2 class="text-lg font-bold mb-2">Análise</h2>
         <p
-          class="text-gray-700 whitespace-pre-wrap text-sm mb-2"
-          v-if="request.opinion"
-        >
-          {{ request.opinion }}
-        </p>
-        <p
-          class="text-gray-700 font-bold whitespace-pre-wrap text-sm border-t border-gray-200 pt-2 mb-2"
-          v-if="request.coordinator"
-        >
-          <span class="text-sm font-normal">Coordenador(a): </span
-          >{{ extractName(request.coordinator) }}
-        </p>
-        <p
-          class="text-primary-800 font-normal whitespace-pre-wrap text-sm"
-          v-if="request?.sentAt"
-        >
-          <span class="text-sm font-normal">E-mail enviado em: </span>
-          {{ formatDateLong(request.sentAt) }}
-        </p>
-
-        <p
-          v-if="!request.opinion"
+          v-if="request.status === 'Aguardando'"
           class="text-gray-700 whitespace-pre-wrap text-sm"
         >
           Aguardando análise da coordenação.
         </p>
+        <template v-else>
+          <p
+            class="text-gray-700 whitespace-pre-wrap text-sm mb-2"
+            v-if="request.opinion"
+          >
+            {{ request.opinion }}
+          </p>
+          <p
+            class="text-gray-700 font-bold whitespace-pre-wrap text-sm border-t border-gray-200 pt-2 mb-2"
+            v-if="request.coordinator"
+          >
+            <span class="text-sm font-normal">Coordenador(a): </span
+            >{{ extractName(request.coordinator) }}
+          </p>
+        </template>
 
         <p
           :class="request.siga ? 'text-green-600' : 'text-red-600'"
@@ -175,24 +248,23 @@ const extractName = str => {
           {{
             request.siga
               ? 'Autorização efetivada no siga. Confira a sua CRID'
-              : 'Autorização ainda não efetivada no SIGA. o Prazo para efetivar é de 15 dia. Passado este prazo, entre em contato com a secretaria'
+              : 'Autorização ainda não efetivada no SIGA.'
           }}
         </p>
       </BaseCard>
 
       <!-- FILES -->
-      <BaseCard v-if="request.files?.length">
-        <h2 class="text-lg font-bold mb-4">Anexos</h2>
-        <div class="space-y-2">
-          <div
-            v-for="(file, index) in request.files"
-            :key="index"
-            class="flex items-center gap-2 p-2 bg-gray-50 rounded"
-          >
-            <FileText class="w-4 h-4 text-gray-500" />
-            <span class="text-sm">{{ file.name }}</span>
-          </div>
-        </div>
+      <BaseCard v-if="request.driveLink">
+        <h2 class="text-lg font-bold mb-4">Documentos</h2>
+        <a
+          :href="request.driveLink"
+          target="_blank"
+          rel="noopener"
+          class="flex items-center gap-2 p-2 bg-gray-50 rounded text-primary-600 underline break-all"
+        >
+          <FileText class="w-4 h-4 text-gray-500 shrink-0" />
+          <span class="text-sm">Abrir documentos no Google Drive</span>
+        </a>
       </BaseCard>
     </div>
   </AppLayout>

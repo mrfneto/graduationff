@@ -4,10 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { useRequestStore } from '@/stores/request'
 import { useCoordinatorStore } from '@/stores/coordinator'
 import {
-  sendEmail,
   getStatusColor,
   formatTimestamp,
-  formatDateLong
+  irregularityStatusOptions,
+  computeRequestStatus
 } from '@/helpers'
 
 //
@@ -38,6 +38,14 @@ const coordinatorOptions = computed(() => {
   )
 })
 
+// 🧮 O status do pedido nunca é escolhido manualmente — é sempre calculado
+// a partir do status de cada irregularidade (ver computeRequestStatus em
+// helpers/index.js). A coordenação expressa a decisão marcando cada item
+// individualmente como Autorizado / Não autorizado / Pendente.
+const previewStatus = computed(() =>
+  request.value ? computeRequestStatus(request.value.irregularities) : null
+)
+
 onMounted(async () => {
   await coordinatorStore.get([{ field: 'active', value: true }])
   const result = await requestStore.getById(id.value)
@@ -48,44 +56,9 @@ onMounted(async () => {
 const handleSubmit = async () => {
   saving.value = true
   try {
-    const total = request.value.irregularities.length
-    const authorizeds = request.value.irregularities.filter(
-      i => i.authorized
-    ).length
-
-    request.value.status =
-      authorizeds === total
-        ? 'Deferido'
-        : authorizeds > 0
-        ? 'Deferido-Parcial'
-        : 'Indeferido'
+    request.value.status = previewStatus.value
 
     await requestStore.save(request.value, id.value)
-
-    // if (
-    //   request.value.status === 'Deferido-Parcial' ||
-    //   request.value.status === 'Indeferido'
-    // ) {
-    //   await sendEmail(request.value)
-    //   request.value.sentAt = new Date().toISOString()
-    //   await requestStore.save(request.value, id.value)
-    //   await sweet.success('Parecer salvo e e-mail enviado com sucesso!')
-    // } else {
-    //   await sweet.info('Parecer salvo com sucesso.')
-    // }
-
-    // const confirmed = await sweet.confirm(
-    //   'Deseja enviar e-mail com o parecer para o aluno?',
-    //   'Você pode enviar agora ou apenas salvar o parecer e enviar depois clicando em salvar.'
-    // )
-    // if (confirmed) {
-    //   await sendEmail(request.value)
-    //   request.value.sentAt = new Date().toISOString()
-    //   await requestStore.save(request.value, id.value)
-    //   await sweet.success('Parecer salvo e e-mail enviado com sucesso!')
-    // } else {
-    //   await sweet.info('Parecer salvo com sucesso.')
-    // }
     await sweet.info('Parecer salvo com sucesso.')
 
     router.push({ name: 'requests' })
@@ -116,9 +89,8 @@ const handleSubmit = async () => {
     </p>
 
     <div v-else>
-      <!-- Grupo 1: Detalhes do pedido -->
       <BaseCard class="space-y-6 mb-4">
-        <div>
+        <form @submit.prevent="handleSubmit">
           <h2 class="font-semibold text-lg mb-2">Informações do Aluno</h2>
           <!-- Dados pessoais -->
           <div class="grid md:grid-cols-2 text-sm">
@@ -153,27 +125,34 @@ const handleSubmit = async () => {
               class="bg-gray-100 rounded-md p-2"
             >
               <div class="grid md:grid-cols-2 md:gap-4 items-center mb-1">
-                <span class="font-medium">{{ item.name }}</span>
+                <span class="font-medium">
+                  {{ item.name }}
+                  <span
+                    v-if="item.appealUsed"
+                    class="text-xs font-normal text-gray-500"
+                  >
+                    (recurso já utilizado)
+                  </span>
+                </span>
 
-                <div class="space-x-4 flex items-center">
-                  <label class="flex items-center space-x-2 cursor-pointer">
+                <div class="space-x-4 flex items-center flex-wrap">
+                  <label
+                    v-for="option in irregularityStatusOptions"
+                    :key="option"
+                    class="flex items-center space-x-2 cursor-pointer"
+                  >
                     <input
                       type="radio"
-                      v-model="item.authorized"
-                      :value="true"
-                      class="form-radio h-4 w-4 text-green-600 outline-none"
+                      v-model="item.status"
+                      :value="option"
+                      class="form-radio h-4 w-4 outline-none"
+                      :class="{
+                        'text-green-600': option === 'Autorizado',
+                        'text-red-600': option === 'Não autorizado',
+                        'text-yellow-600': option === 'Pendente'
+                      }"
                     />
-                    <span class="text-sm text-gray-700">Autorizada</span>
-                  </label>
-
-                  <label class="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      v-model="item.authorized"
-                      :value="false"
-                      class="form-radio h-4 w-4 text-red-600 outline-none"
-                    />
-                    <span class="text-sm text-gray-700">Não autorizada</span>
+                    <span class="text-sm text-gray-700">{{ option }}</span>
                   </label>
                 </div>
               </div>
@@ -183,81 +162,80 @@ const handleSubmit = async () => {
                   {{ item.description }}
                 </p>
               </div>
+
+              <div class="mt-2" v-if="item.status !== 'Autorizado'">
+                <label
+                  :for="`coordinator-note-${index}`"
+                  class="text-sm font-semibold block mb-1"
+                >
+                  Parecer do coordenador
+                  <span class="font-normal text-gray-500">
+                    (visível para o aluno)
+                  </span>
+                </label>
+                <textarea
+                  :id="`coordinator-note-${index}`"
+                  v-model="item.coordinatorNote"
+                  placeholder="Explique o que precisa ser corrigido ou complementado nesta irregularidade..."
+                  class="w-full border border-gray-300 rounded-md p-2 text-sm min-h-[70px]"
+                ></textarea>
+              </div>
+
+              <!-- Recurso enviado pelo aluno (se houver) -->
+              <div
+                v-if="item.appeal"
+                class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md"
+              >
+                <p class="text-sm font-semibold text-blue-900">
+                  Recurso do aluno:
+                </p>
+                <p class="text-sm text-blue-900 whitespace-pre-wrap">
+                  {{ item.appeal }}
+                </p>
+              </div>
+
+              <!-- Resposta do aluno a uma pendência (se houver) -->
+              <div
+                v-if="item.pendingResponse"
+                class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md"
+              >
+                <p class="text-sm font-semibold text-yellow-900">
+                  Resposta do aluno à pendência:
+                </p>
+                <p class="text-sm text-yellow-900 whitespace-pre-wrap">
+                  {{ item.pendingResponse }}
+                </p>
+              </div>
             </div>
 
             <!-- Documentos do aluno -->
-            <div v-if="request.files?.length">
-              <h3 class="text-lg font-semibold">Arquivos Anexados</h3>
-              <ul class="list-disc ml-6">
-                <li v-for="file in request.files" :key="file.name">
-                  <a
-                    :href="file.url"
-                    target="_blank"
-                    class="text-blue-600 underline"
-                  >
-                    {{ file.name }}
-                  </a>
-                </li>
-              </ul>
+            <div v-if="request.driveLink">
+              <h3 class="text-lg font-semibold">Documentos</h3>
+              <a
+                :href="request.driveLink"
+                target="_blank"
+                rel="noopener"
+                class="text-blue-600 underline break-all"
+              >
+                Abrir documentos no Google Drive
+              </a>
             </div>
           </div>
-        </div>
-      </BaseCard>
 
-      <!-- Grupo 2: Parecer do Coordenador -->
-      <BaseCard
-        title="Parecer do Coordenador"
-        :description="
-          request.sentAt &&
-          `Parecer enviado via e-mail em: ${formatDateLong(request?.sentAt)}`
-        "
-      >
-        <form @submit.prevent="handleSubmit" class="space-y-6">
-          <div class="grid md:grid-cols-2 gap-4">
+          <div class="mt-6 pt-6 border-t border-gray-200 md:max-w-sm">
             <BaseInput
-              type="textarea"
-              id="opinion"
-              v-model="request.opinion"
-              label="Parecer do coordenador"
-              placeholder="Informe o parecer aqui"
+              id="coordinator"
+              type="select"
+              v-model="request.coordinator"
+              :options="coordinatorOptions"
+              label="Coordenador Responsável"
+              placeholder="Nome do coordenador"
               required
-              hint="Em caso de **pendências**, marque a opção *não autorizado* e solicite que o aluno envie e-mail para a coordanção com os documentos ou informações necessárias."
             />
-
-            <div>
-              <BaseInput
-                id="coordinator"
-                type="select"
-                v-model="request.coordinator"
-                :options="coordinatorOptions"
-                label="Coordenador Responsável"
-                placeholder="Nome do coordenador"
-                required
-              />
-              <div>
-                <label
-                  class="inline-flex items-center space-x-2 cursor-pointer mt-8"
-                >
-                  <input
-                    type="checkbox"
-                    v-model="request.siga"
-                    class="form-checkbox h-5 w-5 text-primary-600"
-                  />
-                  <span
-                    :class="request.siga ? 'text-green-600' : 'text-red-600'"
-                    >{{
-                      request.siga
-                        ? 'Lançado no SIGA pela Secretaria'
-                        : 'Não lançado no SIGA pela Secretaria'
-                    }}</span
-                  >
-                </label>
-              </div>
-            </div>
           </div>
 
-          <div class="flex items-center space-x-4">
-            <BaseButton :loading="saving" class="w-full">
+          <div class="flex items-center flex-wrap gap-4 mt-6">
+            <BaseButton :loading="saving" class="flex-1">
               Salvar Parecer
             </BaseButton>
             <BaseButton

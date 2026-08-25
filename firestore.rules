@@ -1,0 +1,143 @@
+rules_version = '2';
+
+// ATENÇÃO: este arquivo foi escrito com base na leitura do código do app,
+// mas não pôde ser testado neste ambiente (sem acesso ao Firebase CLI /
+// emulador). Teste com o Firestore Emulator antes de confiar em produção:
+// https://firebase.google.com/docs/rules/emulator-setup
+//
+// Nomes de coleção usados abaixo: "semesters", "coordinators", "requests",
+// "requestLocks". Se você usar outros nomes nas variáveis
+// VITE_FIREBASE_COLLECTION_* do .env, ajuste os caminhos "match /..."
+// correspondentes aqui também.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Secretaria/coordenação = qualquer usuário autenticado no Firebase Auth
+    // (o app não tem múltiplos papéis; todo usuário logado é staff).
+    function isStaff() {
+      return request.auth != null;
+    }
+
+    // -----------------------------------------------------------------
+    // semesters
+    // Leitura pública: a Home precisa saber se há semestre ativo/previsto
+    // sem exigir login. Escrita só para a secretaria/coordenação.
+    // -----------------------------------------------------------------
+    match /semesters/{semesterId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    // -----------------------------------------------------------------
+    // coordinators
+    // Só é lido/usado em telas autenticadas (gestão de coordenadores e
+    // análise de pedidos), não precisa de acesso público.
+    // -----------------------------------------------------------------
+    match /coordinators/{coordinatorId} {
+      allow read, write: if isStaff();
+    }
+
+    // -----------------------------------------------------------------
+    // requestLocks
+    // Um "cadeado" por combinação semestre+matrícula, usado só para
+    // impedir duas solicitações da mesma matrícula no mesmo semestre. O ID
+    // do documento é derivado de semestre+matrícula (ver buildLockId em
+    // src/stores/request.js) — nunca um dado sensível sozinho, e a consulta
+    // pública só confirma existência (get), nunca lista (list). O conteúdo
+    // do documento não expõe dados pessoais além do que o próprio cliente
+    // já enviou (register/semester), então não há necessidade de proteger
+    // esses campos com mais rigor do que isso.
+    // -----------------------------------------------------------------
+    match /requestLocks/{lockId} {
+      allow get: if true;
+      allow list: if isStaff();
+      allow create: if
+        request.resource.data.semester is string && request.resource.data.semester.size() > 0 &&
+        request.resource.data.register is string && request.resource.data.register.size() > 0;
+      allow update, delete: if isStaff();
+    }
+
+    // -----------------------------------------------------------------
+    // requests
+    // O ID do documento É o próprio access_code (ver src/stores/request.js).
+    // Isso é o que torna a consulta pública segura: um get() por ID exige
+    // que o cliente já saiba o código; nunca liberamos list() ao público,
+    // então não dá para "escanear" a coleção e descobrir pedidos de outros
+    // alunos.
+    // -----------------------------------------------------------------
+    match /requests/{requestId} {
+      // Qualquer pessoa que tenha o código (o ID do documento) pode
+      // consultar aquele pedido específico.
+      allow get: if true;
+
+      // Listar/filtrar a coleção inteira só para a secretaria/coordenação
+      // autenticada (tela de gestão de pedidos).
+      allow list: if isStaff();
+
+      // Criação pública (formulário de solicitação do aluno), com
+      // validações mínimas para impedir que alguém crie um pedido já
+      // "decidido" (status diferente de Aguardando, parecer, coordenador
+      // ou SIGA preenchidos).
+      // OBS: o formulário (RequestFormView.vue) sempre envia coordinator
+      // como string vazia (nunca omite a chave) — por isso o "get(...,
+      // '')" abaixo em vez de checar ausência da chave com "in".
+      allow create: if
+        requestId == request.resource.data.access_code &&
+        request.resource.data.status == 'Aguardando' &&
+        request.resource.data.siga == false &&
+        !('opinion' in request.resource.data) &&
+        request.resource.data.get('coordinator', '') == '' &&
+        request.resource.data.name is string && request.resource.data.name.size() > 0 &&
+        request.resource.data.email is string && request.resource.data.email.size() > 0 &&
+        request.resource.data.register is string &&
+        request.resource.data.semester is string && request.resource.data.semester.size() > 0 &&
+        request.resource.data.irregularities is list &&
+        request.resource.data.driveLink is string && request.resource.data.driveLink.size() > 0;
+
+      // Atualização:
+      // - secretaria/coordenação: acesso total (parecer, status, SIGA etc).
+      // - o próprio aluno (sem login): enquanto o pedido não estiver com
+      //   decisão 100% final e sem nada mais a fazer (só "Deferido" — total
+      //   aprovação — é totalmente travado). Todo o resto ("Aguardando",
+      //   "Pendente", "Deferido-Parcial", "Indeferido-Parcial" e mesmo
+      //   "Indeferido") pode ter irregularidades ainda "Pendente" ou
+      //   "Não autorizado" com recurso disponível (ver computeRequestStatus
+      //   e RequestFormView.vue). O pedido sai da edição do aluno sempre
+      //   como "Aguardando" (volta pra fila de análise), e ele não pode
+      //   alterar os campos de decisão da coordenação, o código de acesso
+      //   ou o semestre.
+      //
+      // OBS 1: a UI (src/views/RequestFormView.vue) só permite editar de
+      // fato os campos de uma irregularidade "Pendente", ou o texto de
+      // recurso de uma "Não autorizado" ainda sem recurso usado — uma
+      // checagem bem mais fina do que dá pra expressar aqui, já que o
+      // Firestore Rules não tem como iterar a lista "irregularities" e
+      // inspecionar um campo de cada item. Esta regra é intencionalmente
+      // mais permissiva que a UI — não é uma falha de segurança (nenhum
+      // dado de terceiros é exposto), só uma simplificação.
+      //
+      // OBS 2: também não validamos aqui o conteúdo interno de cada item
+      // da lista "irregularities" (ex.: impedir que o aluno altere
+      // status/coordinatorNote/appealUsed de um item existente, ou marque
+      // um recurso como usado sem realmente ter enviado um) — isso não é
+      // feito pela UI, mas um cliente malicioso poderia manipular a
+      // requisição diretamente. Se isso for uma preocupação real,
+      // considere mover a decisão final para uma Cloud Function em vez de
+      // escrita direta do cliente.
+      allow update: if isStaff() || (
+        resource.data.status != 'Deferido' &&
+        request.resource.data.status == 'Aguardando' &&
+        request.resource.data.access_code == resource.data.access_code &&
+        request.resource.data.semester == resource.data.semester &&
+        request.resource.data.siga == resource.data.get('siga', false) &&
+        request.resource.data.get('opinion', null) == resource.data.get('opinion', null) &&
+        request.resource.data.get('coordinator', null) == resource.data.get('coordinator', null)
+      );
+
+      // Exclusão: secretaria/coordenação a qualquer momento, ou o próprio
+      // aluno enquanto o pedido ainda está "Aguardando" (cancelar pedido).
+      allow delete: if isStaff() || resource.data.status == 'Aguardando';
+    }
+  }
+}

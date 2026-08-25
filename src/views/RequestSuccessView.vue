@@ -2,6 +2,7 @@
 import { onMounted, reactive, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRequestStore } from '@/stores/request'
+import { useSemesterStore } from '@/stores/semester'
 import { generatePDF } from '@/helpers'
 import { CheckCircle, Download, Home, Loader2 } from 'lucide-vue-next'
 
@@ -13,6 +14,7 @@ import BaseAlert from '@/components/ui/BaseAlert.vue'
 const route = useRoute()
 const router = useRouter()
 const requestStore = useRequestStore()
+const semesterStore = useSemesterStore()
 
 const state = reactive({
   loading: false,
@@ -21,34 +23,19 @@ const state = reactive({
 
 const code = computed(() => route.params.code)
 
-const getRequest = async codeValue => {
-  try {
-    const results = await requestStore.get([
-      {
-        field: 'access_code',
-        value: code.value
-      }
-    ])
-    if (!results.length) throw new Error('Código não encontrado.')
-    return results[0]
-  } catch (error) {
-    throw new Error(error.message || 'Erro ao buscar a solicitação.')
-  }
-}
-
 const downloadPDF = async () => {
   state.loading = true
   state.error = null
 
   try {
-    await requestStore.get([
-      {
-        field: 'access_code',
-        value: code.value
-      }
-    ])
-    if (requestStore.hasRequests) {
-      generatePDF(requestStore.requests[0])
+    const request = await requestStore.getById(code.value)
+    if (request) {
+      const semester = await semesterStore.getByName(request.semester)
+      generatePDF({
+        ...request,
+        access_code: code.value,
+        resultDate: semester?.resultDate
+      })
     } else {
       throw new Error('Código não encontrado.')
     }
@@ -59,6 +46,15 @@ const downloadPDF = async () => {
     state.loading = false
   }
 }
+
+// Baixa o comprovante automaticamente ao chegar aqui logo após criar um
+// pedido novo (ver query "new" em RequestFormView.vue) — não em reenvios
+// de pendência/recurso, que também passam por esta tela.
+onMounted(() => {
+  if (route.query.new === '1') {
+    downloadPDF()
+  }
+})
 </script>
 
 <template>

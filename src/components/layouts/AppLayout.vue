@@ -19,6 +19,7 @@ const userMenuRef = ref()
 
 const links = [
   { label: 'Pedidos', to: 'requests' },
+  { label: 'Efetivação', to: 'effectivation' },
   { label: 'Semestres', to: 'semesters' },
   { label: 'Coordenadores', to: 'coordinators' }
 ]
@@ -32,7 +33,7 @@ const handleLogout = async () => {
     await logout()
     router.replace({ name: 'login' })
   } catch (error) {
-    console.log('Erro ao fazer logout:', error)
+    console.error('Erro ao fazer logout:', error)
   }
 }
 

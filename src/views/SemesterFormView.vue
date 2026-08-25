@@ -28,7 +28,8 @@ const state = ref({
 const form = ref({
   name: '',
   start: '',
-  end: ''
+  end: '',
+  resultDate: ''
 })
 
 const id = route.params.id || null
@@ -143,6 +144,15 @@ onMounted(async () => {
             required
           />
         </div>
+
+        <BaseInput
+          id="resultDate"
+          type="date"
+          label="Consultar parecer a partir de"
+          v-model="form.resultDate"
+          :disabled="state.saving"
+          hint="Data a partir da qual os alunos devem consultar o parecer da coordenação (sem envio de e-mail — o próprio site vai orientar o aluno a aguardar até essa data)."
+        />
 
         <div class="flex flex-col md:flex-row md:items-center gap-4 mb-6">
           <BaseButton :loading="state.saving" class="flex-1">

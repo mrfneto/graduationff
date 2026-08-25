@@ -1,33 +1,40 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { db, storage } from '@/firebase'
+import { db } from '@/firebase'
 import {
   collection,
   query,
   updateDoc,
+  setDoc,
   doc,
   deleteDoc,
-  addDoc,
   getDocs,
   getDoc,
   orderBy,
+  runTransaction,
   serverTimestamp,
   where
 } from 'firebase/firestore'
-import {
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject
-} from 'firebase/storage'
 import { nanoid } from '../helpers'
-import { useSemesterStore } from './semester'
 
 export const useRequestStore = defineStore('request', () => {
   const requests = ref([])
   const requestsCache = ref({})
 
   const collectionName = import.meta.env.VITE_FIREBASE_COLLECTION_REQUESTS
+  const lockCollectionName = import.meta.env
+    .VITE_FIREBASE_COLLECTION_REQUEST_LOCKS
+
+  // 🔐 ID determinístico do "cadeado" semestre+matrícula (nunca uma query),
+  // pra permitir checar duplicidade publicamente sem precisar de list().
+  const buildLockId = (semester, register) => {
+    const clean = str =>
+      (str || '')
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+    return `${clean(semester)}_${clean(register)}`
+  }
 
   const filters = ref({
     name: '',
@@ -90,24 +97,42 @@ export const useRequestStore = defineStore('request', () => {
     }
   }
 
+  // 🔍 Verifica se já existe solicitação para esta matrícula neste
+  // semestre (checagem rápida/consultiva antes de submeter — a garantia
+  // real contra corrida/duplicidade é a transação dentro de save()).
+  const checkDuplicate = async (register, semester) => {
+    try {
+      const lockId = buildLockId(semester, register)
+      const snap = await getDoc(doc(db, lockCollectionName, lockId))
+      return snap.exists()
+    } catch (error) {
+      console.error('[RequestStore] Erro ao verificar duplicidade:', error)
+      return false
+    }
+  }
+
+  // 🔐 Gera um código de acesso garantidamente livre (ele também é o ID do
+  // documento, então checamos colisão antes de gravar — extremamente raro,
+  // mas silenciosamente sobrescrever outra solicitação seria grave).
+  const generateUniqueAccessCode = async () => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = nanoid()
+      const existing = await getDoc(doc(db, collectionName, code))
+      if (!existing.exists()) return code
+    }
+    throw new Error(
+      'Não foi possível gerar um código de acesso único. Tente novamente.'
+    )
+  }
+
   // 💾 Cria ou atualiza um registro
+  // OBS: o ID do documento é o próprio access_code — isso permite que a
+  // consulta pública de status use um get() direto (getById) em vez de uma
+  // query com "list", que não pode ser restringida por regra do Firestore.
   const save = async (request, id = null) => {
     const payload = { ...request, update_at: serverTimestamp() }
 
-    const keptFiles = (payload.files || []).filter(file => file.url)
-    const newFiles = (payload.files || []).filter(file => !file.url)
-
-    if (keptFiles.length + newFiles.length > 3) {
-      throw new Error('Limite de 3 arquivos excedido.')
-    }
-
-    const uploadedFiles = []
-    for (const file of newFiles) {
-      const uploaded = await uploadFile(file, payload.semester)
-      uploadedFiles.push(uploaded)
-    }
-
-    payload.files = [...keptFiles, ...uploadedFiles]
+    payload.driveLink = (payload.driveLink || '').trim()
 
     try {
       if (id) {
@@ -118,15 +143,43 @@ export const useRequestStore = defineStore('request', () => {
         if (index !== -1) {
           requests.value[index] = { ...requests.value[index], ...payload }
         }
-      } else {
-        payload.access_code = `${nanoid()}/${payload.semester}`
-        payload.created_at = serverTimestamp()
-        await addDoc(collection(db, collectionName), payload)
+
+        return payload.access_code
       }
 
-      return payload.access_code
+      const accessCode = await generateUniqueAccessCode()
+      payload.access_code = accessCode
+      payload.created_at = serverTimestamp()
+
+      const lockId = buildLockId(payload.semester, payload.register)
+      const lockRef = doc(db, lockCollectionName, lockId)
+      const requestRef = doc(db, collectionName, accessCode)
+
+      // Transação: cria o cadeado e o pedido juntos, atomicamente. Se já
+      // existir um cadeado pra essa matrícula+semestre (mesmo que tenha
+      // sido criado no instante entre o checkDuplicate() e este ponto),
+      // a transação falha e nada é gravado.
+      await runTransaction(db, async tx => {
+        const lockSnap = await tx.get(lockRef)
+        if (lockSnap.exists()) {
+          throw new Error(
+            'Já existe uma solicitação registrada para esta matrícula neste semestre.'
+          )
+        }
+
+        tx.set(lockRef, {
+          semester: payload.semester,
+          register: payload.register,
+          access_code: accessCode,
+          created_at: serverTimestamp()
+        })
+        tx.set(requestRef, payload)
+      })
+
+      return accessCode
     } catch (error) {
       console.error('[RequestStore] Erro ao salvar registro:', error)
+      throw error
     }
   }
 
@@ -139,38 +192,14 @@ export const useRequestStore = defineStore('request', () => {
     }
   }
 
-  // ⬆️ Enviar arquivo para o Storage
-  const uploadFile = async (file, folder = 'attachments') => {
-    const fileRef = storageRef(
-      storage,
-      `${folder}/${crypto.randomUUID()}_${file.name}`
-    )
-    await uploadBytes(fileRef, file)
-    const url = await getDownloadURL(fileRef)
-
-    return { name: file.name, url, path: fileRef.fullPath }
-  }
-
-  // ⬇️ Remover arquivo do Storage
-  const removeFile = async path => {
-    try {
-      const fileRef = storageRef(storage, path)
-      await deleteObject(fileRef)
-    } catch (err) {
-      console.error('Erro ao remover arquivo do storage:', err)
-      throw err
-    }
-  }
-
   return {
     filters,
     requests,
     hasRequests,
     get,
     getById,
+    checkDuplicate,
     save,
-    remove,
-    uploadFile,
-    removeFile
+    remove
   }
 })

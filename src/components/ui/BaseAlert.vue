@@ -28,7 +28,7 @@ const alertClass = computed(
 </script>
 
 <template>
-  <span :class="alertClass" role="alert">
+  <div :class="alertClass" role="alert">
     <slot />
-  </span>
+  </div>
 </template>

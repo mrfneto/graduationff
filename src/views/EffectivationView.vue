@@ -130,63 +130,66 @@ const extractCoordinatorName = str => {
         v-for="request in filteredRequests"
         :key="request.id"
         small
-        class="flex flex-col md:flex-row md:items-start gap-4"
       >
-        <div class="flex-1">
-          <div class="flex items-center gap-2 flex-wrap mb-1">
-            <h3 class="font-semibold">{{ request.name }}</h3>
-            <BaseBadge :variant="getStatusColor(request.status)">
-              {{ request.status }}
-            </BaseBadge>
-          </div>
-          <p class="text-xs text-gray-500 mb-3">
-            DRE: {{ request.register }} · {{ request.course }}
-            <template v-if="request.coordinator">
-              · Coordenador(a): {{ extractCoordinatorName(request.coordinator) }}
-            </template>
-          </p>
-
-          <ul class="space-y-1">
-            <li
-              v-for="(irr, index) in request.irregularities"
-              :key="index"
-              class="flex items-center justify-between text-sm bg-gray-50 rounded px-2 py-1"
-            >
-              <span>{{ irr.name }}</span>
-              <BaseBadge :variant="getStatusColor(irr.status)">
-                {{ irr.status }}
+        <div class="flex flex-col md:flex-row md:items-start gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <h3 class="font-semibold">{{ request.name }}</h3>
+              <BaseBadge :variant="getStatusColor(request.status)">
+                {{ request.status }}
               </BaseBadge>
-            </li>
-          </ul>
-        </div>
+            </div>
+            <p class="text-xs text-gray-500 mb-3">
+              DRE: {{ request.register }} · {{ request.course }}
+              <template v-if="request.coordinator">
+                · Coordenador(a): {{ extractCoordinatorName(request.coordinator) }}
+              </template>
+            </p>
 
-        <div class="flex md:flex-col items-center md:items-end gap-2 shrink-0">
-          <BaseButton
-            :to="{ name: 'request-details', params: { id: request.id } }"
-            variant="secondary"
-            size="sm"
-          >
-            Ver pedido
-          </BaseButton>
+            <ul class="space-y-1">
+              <li
+                v-for="(irr, index) in request.irregularities"
+                :key="index"
+                class="flex items-center justify-between text-sm bg-gray-50 rounded px-2 py-1"
+              >
+                <span>{{ irr.name }}</span>
+                <BaseBadge :variant="getStatusColor(irr.status)">
+                  {{ irr.status }}
+                </BaseBadge>
+              </li>
+            </ul>
+          </div>
 
-          <label
-            class="flex items-center gap-2 cursor-pointer select-none"
-            :class="savingId === request.id ? 'opacity-50 pointer-events-none' : ''"
+          <div
+            class="flex flex-row md:flex-col items-center md:items-end gap-3 shrink-0"
           >
-            <input
-              type="checkbox"
-              class="form-checkbox h-5 w-5 text-primary-600"
-              :checked="request.siga === true"
-              @change="toggleEfetivado(request)"
-            />
-            <span
-              class="text-sm font-medium flex items-center gap-1"
-              :class="request.siga ? 'text-green-600' : 'text-gray-600'"
+            <BaseButton
+              :to="{ name: 'request-details', params: { id: request.id } }"
+              variant="secondary"
+              size="sm"
             >
-              <CheckCircle v-if="request.siga" class="w-4 h-4" />
-              Efetivado
-            </span>
-          </label>
+              Ver pedido
+            </BaseButton>
+
+            <label
+              class="flex items-center gap-2 cursor-pointer select-none"
+              :class="savingId === request.id ? 'opacity-50 pointer-events-none' : ''"
+            >
+              <input
+                type="checkbox"
+                class="form-checkbox h-5 w-5 text-primary-600"
+                :checked="request.siga === true"
+                @change="toggleEfetivado(request)"
+              />
+              <span
+                class="text-sm font-medium flex items-center gap-1"
+                :class="request.siga ? 'text-green-600' : 'text-gray-600'"
+              >
+                <CheckCircle v-if="request.siga" class="w-4 h-4" />
+                Efetivado
+              </span>
+            </label>
+          </div>
         </div>
       </BaseCard>
     </div>

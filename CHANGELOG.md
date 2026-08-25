@@ -7,6 +7,12 @@ e esse projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Removed
+- Checkbox "Lançado no SIGA pela Secretaria" tirado da tela de análise
+  (RequestDetailsView) — ficou redundante com a página dedicada de
+  Efetivação. O campo `siga` continua existindo nos dados, só não é mais
+  editável por ali.
+
 ### Added
 - Nova página **Efetivação** (`/efetivacao`, menu da secretaria/coordenação):
   filtro por semestre (começa vazio) e por "Efetivado no SIGA"

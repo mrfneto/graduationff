@@ -222,7 +222,7 @@ const handleSubmit = async () => {
             </div>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200">
+          <div class="mt-6 pt-6 border-t border-gray-200 md:max-w-sm">
             <BaseInput
               id="coordinator"
               type="select"
@@ -232,26 +232,6 @@ const handleSubmit = async () => {
               placeholder="Nome do coordenador"
               required
             />
-
-            <div class="flex items-end">
-              <label
-                class="inline-flex items-center space-x-2 cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  v-model="request.siga"
-                  class="form-checkbox h-5 w-5 text-primary-600"
-                />
-                <span
-                  :class="request.siga ? 'text-green-600' : 'text-red-600'"
-                  >{{
-                    request.siga
-                      ? 'Lançado no SIGA pela Secretaria'
-                      : 'Não lançado no SIGA pela Secretaria'
-                  }}</span
-                >
-              </label>
-            </div>
           </div>
 
           <div class="flex items-center flex-wrap gap-4 mt-6">
